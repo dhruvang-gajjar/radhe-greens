@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, AlertCircle } from "lucide-react";
-import { getMembers, defaultMembers, findMember, saveMember, Member } from "@/lib/storage";
+import { getMembers, defaultMembers, findMember, saveMemberCloud, fetchLiveMembers, Member } from "@/lib/storage";
 
 export default function AddPage() {
   const router = useRouter();
@@ -16,11 +16,17 @@ export default function AddPage() {
   const [phone, setPhone] = useState<string>("");
   const [additionalDetails, setAdditionalDetails] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    // Sync with localStorage on client
+    // 1. Local state
     setMembers(getMembers());
+
+    // 2. Fetch live data from cloud
+    fetchLiveMembers().then((data) => {
+      if (data && data.length > 0) setMembers(data);
+    });
 
     // Read URL query parameters if navigated from a card
     if (typeof window !== "undefined") {
@@ -43,7 +49,7 @@ export default function AddPage() {
   // Sync form when flat selection or block changes
   useEffect(() => {
     if (!selectedBlock || !selectedFlat) return;
-    const existing = findMember(selectedBlock, selectedFlat);
+    const existing = findMember(selectedBlock, selectedFlat, members);
     if (existing && (existing.name || existing.phone)) {
       setName(existing.name || "");
       setPhone(existing.phone || "");
@@ -53,14 +59,14 @@ export default function AddPage() {
       setPhone("");
       setAdditionalDetails("");
     }
-  }, [selectedBlock, selectedFlat]);
+  }, [selectedBlock, selectedFlat, members]);
 
   const handlePhoneChange = (val: string) => {
     const clean = val.replace(/\D/g, "").slice(0, 10);
     setPhone(clean);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -74,18 +80,26 @@ export default function AddPage() {
       return;
     }
 
-    saveMember({
-      block: selectedBlock,
-      flatNo: selectedFlat,
-      name: name.trim(),
-      phone: phone.trim(),
-      additionalDetails: additionalDetails.trim(),
-    });
+    setIsSaving(true);
 
-    setSuccess(true);
-    setTimeout(() => {
-      router.push("/");
-    }, 800);
+    try {
+      await saveMemberCloud({
+        block: selectedBlock,
+        flatNo: selectedFlat,
+        name: name.trim(),
+        phone: phone.trim(),
+        additionalDetails: additionalDetails.trim(),
+      });
+
+      setSuccess(true);
+      setTimeout(() => {
+        router.push("/");
+      }, 700);
+    } catch (err) {
+      console.error(err);
+      setError("Could not save details to cloud. Please try again.");
+      setIsSaving(false);
+    }
   };
 
   const currentResident = findMember(selectedBlock, selectedFlat);
@@ -236,10 +250,16 @@ export default function AddPage() {
         <div className="pt-2">
           <button
             type="submit"
-            disabled={success}
-            className="w-full py-3 px-4 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition shadow-sm active:scale-98"
+            disabled={isSaving || success}
+            className="w-full py-3 px-4 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 text-white rounded-xl font-bold text-sm transition shadow-sm active:scale-98"
           >
-            {success ? "Saved!" : isCurrentlyOccupied ? "Update Resident Details" : "Save Resident"}
+            {success
+              ? "Saved!"
+              : isSaving
+              ? "Saving to Cloud..."
+              : isCurrentlyOccupied
+              ? "Update Resident Details"
+              : "Save Resident"}
           </button>
 
           <Link

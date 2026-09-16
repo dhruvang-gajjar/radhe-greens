@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Search, X, Phone, MessageCircle } from "lucide-react";
-import { getMembers, defaultMembers, Member } from "@/lib/storage";
+import { getMembers, defaultMembers, fetchLiveMembers, Member } from "@/lib/storage";
 import { PhoneActionModal } from "@/components/PhoneActionModal";
 
 export default function DirectoryPage() {
@@ -13,8 +13,34 @@ export default function DirectoryPage() {
   const [activeModalMember, setActiveModalMember] = useState<Member | null>(null);
 
   useEffect(() => {
-    // Sync any custom/added members from localStorage on client mount
+    // 1. Instant local read
     setMembers(getMembers());
+
+    // 2. Fetch live data from shared cloud database
+    const syncCloudData = () => {
+      fetchLiveMembers().then((data) => {
+        if (data && data.length > 0) {
+          setMembers(data);
+        }
+      });
+    };
+
+    syncCloudData();
+
+    // 3. Multi-device sync: auto-refresh when tab/phone is focused
+    const handleFocus = () => syncCloudData();
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") handleFocus();
+    });
+
+    // 4. Polling every 20 seconds for cross-device live updates
+    const interval = setInterval(syncCloudData, 20000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   const filteredMembers = useMemo(() => {

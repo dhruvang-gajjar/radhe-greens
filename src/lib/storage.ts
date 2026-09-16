@@ -17,6 +17,7 @@ export const defaultMembers = initialMembers as Member[];
 
 const STORAGE_KEY = "ganesh_heritage_members_v2";
 
+// Local storage reader (instant synchronous access)
 export function getMembers(): Member[] {
   if (typeof window === "undefined") {
     return defaultMembers;
@@ -30,19 +31,67 @@ export function getMembers(): Member[] {
         return parsed;
       }
     }
-    // Initialize if empty
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultMembers));
     return defaultMembers;
   } catch (e) {
-    console.error("Error accessing localStorage:", e);
     return defaultMembers;
   }
 }
 
-export function findMember(block: string, flatNo: string): Member | undefined {
-  const members = getMembers();
+// Fetch live data from shared cloud database (Vercel Blob)
+export async function fetchLiveMembers(): Promise<Member[]> {
+  try {
+    const res = await fetch(`/api/members?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data: Member[] = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+        return data;
+      }
+    }
+  } catch (error) {
+    console.warn("Could not fetch live cloud members, using local storage:", error);
+  }
+  return getMembers();
+}
+
+// Save member to shared cloud database
+export async function saveMemberCloud(data: {
+  block: string;
+  flatNo: string;
+  name: string;
+  phone?: string;
+  additionalDetails?: string;
+}): Promise<Member> {
+  // Update local storage first for instant feedback
+  const localRecord = saveMember(data);
+
+  try {
+    const res = await fetch("/api/members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.member) {
+        return json.member;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to sync member to cloud:", error);
+  }
+
+  return localRecord;
+}
+
+export function findMember(block: string, flatNo: string, list: Member[] = getMembers()): Member | undefined {
   const id = `${block.toUpperCase()}-${flatNo.trim()}`;
-  return members.find(
+  return list.find(
     (m) =>
       m.id.toUpperCase() === id ||
       (m.block.toUpperCase() === block.toUpperCase() && String(m.flatNo) === String(flatNo))
@@ -60,7 +109,7 @@ export function saveMember(data: {
   const block = data.block.toUpperCase().trim();
   const flatNo = String(data.flatNo).trim();
   const id = `${block}-${flatNo}`;
-  const floor = parseInt(flatNo.length > 2 ? flatNo.slice(0, -2) : flatNo[0], 10) || 1;
+  const floor = parseInt(flatNo.length > 2 ? cleanSlice(flatNo) : flatNo[0], 10) || 1;
   const name = (data.name || "").trim();
   const phone = (data.phone || "").trim().replace(/\D/g, "").slice(-10);
   const isOccupied = Boolean(name || phone);
@@ -99,10 +148,8 @@ export function saveMember(data: {
   return record;
 }
 
-export function resetToInitial(): void {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialMembers));
-  }
+function cleanSlice(val: string): string {
+  return val.length > 2 ? val.slice(0, -2) : val[0];
 }
 
 export function exportDirectoryCSV(members: Member[]): void {
