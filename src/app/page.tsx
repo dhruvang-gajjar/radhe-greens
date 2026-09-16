@@ -3,16 +3,17 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Search, X, Phone, MessageCircle } from "lucide-react";
-import { getMembers, Member } from "@/lib/storage";
+import { getMembers, defaultMembers, Member } from "@/lib/storage";
 import { PhoneActionModal } from "@/components/PhoneActionModal";
 
 export default function DirectoryPage() {
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>(defaultMembers);
   const [search, setSearch] = useState("");
   const [selectedBlock, setSelectedBlock] = useState<string>("ALL");
   const [activeModalMember, setActiveModalMember] = useState<Member | null>(null);
 
   useEffect(() => {
+    // Sync any custom/added members from localStorage on client mount
     setMembers(getMembers());
   }, []);
 

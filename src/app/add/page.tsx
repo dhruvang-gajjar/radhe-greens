@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, AlertCircle } from "lucide-react";
-import { getMembers, findMember, saveMember, Member } from "@/lib/storage";
+import { getMembers, defaultMembers, findMember, saveMember, Member } from "@/lib/storage";
 
-function AddResidentForm() {
+export default function AddPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>(defaultMembers);
   const [selectedBlock, setSelectedBlock] = useState<string>("A");
   const [selectedFlat, setSelectedFlat] = useState<string>("101");
   const [name, setName] = useState<string>("");
@@ -20,26 +19,28 @@ function AddResidentForm() {
   const [success, setSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    const loaded = getMembers();
-    setMembers(loaded);
+    // Sync with localStorage on client
+    setMembers(getMembers());
 
-    // Read query parameters if navigated from a card
-    const blockParam = searchParams.get("block")?.toUpperCase();
-    const flatParam = searchParams.get("flat");
+    // Read URL query parameters if navigated from a card
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const blockParam = params.get("block")?.toUpperCase();
+      const flatParam = params.get("flat");
 
-    if (blockParam && ["A", "B", "C", "D"].includes(blockParam)) {
-      setSelectedBlock(blockParam);
+      if (blockParam && ["A", "B", "C", "D"].includes(blockParam)) {
+        setSelectedBlock(blockParam);
+      }
+      if (flatParam) {
+        setSelectedFlat(flatParam);
+      }
     }
+  }, []);
 
-    if (flatParam) {
-      setSelectedFlat(flatParam);
-    }
-  }, [searchParams]);
-
-  // When block changes, update flat selector and check existing data
+  // When block changes, update flat selector
   const blockFlats = members.filter((m) => m.block === selectedBlock);
 
-  // Sync form when flat selection changes
+  // Sync form when flat selection or block changes
   useEffect(() => {
     if (!selectedBlock || !selectedFlat) return;
     const existing = findMember(selectedBlock, selectedFlat);
@@ -123,7 +124,7 @@ function AddResidentForm() {
         {success && (
           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 p-2.5 rounded-xl text-xs font-semibold border border-emerald-100">
             <Check className="w-4 h-4 shrink-0" />
-            <span>Saved successfully! Redirecting...</span>
+            <span>Saved successfully! Redirecting to directory...</span>
           </div>
         )}
 
@@ -250,13 +251,5 @@ function AddResidentForm() {
         </div>
       </form>
     </div>
-  );
-}
-
-export default function AddPage() {
-  return (
-    <Suspense fallback={<div className="p-4 text-xs text-slate-400">Loading form...</div>}>
-      <AddResidentForm />
-    </Suspense>
   );
 }

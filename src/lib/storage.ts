@@ -13,11 +13,13 @@ export interface Member {
   updatedAt?: string;
 }
 
+export const defaultMembers = initialMembers as Member[];
+
 const STORAGE_KEY = "ganesh_heritage_members_v2";
 
 export function getMembers(): Member[] {
   if (typeof window === "undefined") {
-    return initialMembers as Member[];
+    return defaultMembers;
   }
 
   try {
@@ -29,11 +31,11 @@ export function getMembers(): Member[] {
       }
     }
     // Initialize if empty
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialMembers));
-    return initialMembers as Member[];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultMembers));
+    return defaultMembers;
   } catch (e) {
     console.error("Error accessing localStorage:", e);
-    return initialMembers as Member[];
+    return defaultMembers;
   }
 }
 
