@@ -41,6 +41,7 @@ async function getMembersFromBlob(): Promise<Member[]> {
     await put(BLOB_FILENAME, JSON.stringify(initialMembers, null, 2), {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
     return initialMembers as Member[];
   } catch (error) {
@@ -106,6 +107,7 @@ export async function POST(req: Request) {
     await put(BLOB_FILENAME, JSON.stringify(currentMembers, null, 2), {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
 
     return NextResponse.json({ success: true, member: record });
