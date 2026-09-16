@@ -16,9 +16,44 @@ export interface Member {
 export const defaultMembers = initialMembers as Member[];
 
 const STORAGE_KEY = "ganesh_heritage_members_v2";
+const UPDATE_EVENT = "gh_members_updated";
 
-// Local storage reader (instant synchronous access)
+// In-memory cache shared across the client application session
+let memoryMembers: Member[] | null = null;
+const listeners = new Set<(members: Member[]) => void>();
+
+export function subscribeMembers(cb: (members: Member[]) => void): () => void {
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+  };
+}
+
+function broadcastUpdate(updatedList: Member[]) {
+  memoryMembers = [...updatedList];
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryMembers));
+      window.dispatchEvent(new CustomEvent(UPDATE_EVENT, { detail: memoryMembers }));
+    } catch (e) {
+      console.error("Storage error:", e);
+    }
+  }
+  listeners.forEach((listener) => {
+    try {
+      listener(memoryMembers!);
+    } catch (e) {
+      console.error("Listener error:", e);
+    }
+  });
+}
+
+// Get current members (memory -> localStorage -> default)
 export function getMembers(): Member[] {
+  if (memoryMembers && memoryMembers.length > 0) {
+    return memoryMembers;
+  }
+
   if (typeof window === "undefined") {
     return defaultMembers;
   }
@@ -28,37 +63,38 @@ export function getMembers(): Member[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        memoryMembers = parsed;
+        return memoryMembers;
       }
     }
-    return defaultMembers;
   } catch (e) {
-    return defaultMembers;
+    console.warn("Error reading localStorage:", e);
   }
+
+  memoryMembers = [...defaultMembers];
+  return memoryMembers;
 }
 
-// Fetch live data from shared cloud database (Vercel Blob)
+// Fetch live data from cloud once on load without continuous polling
 export async function fetchLiveMembers(): Promise<Member[]> {
   try {
-    const res = await fetch(`/api/members?t=${Date.now()}`, {
+    const res = await fetch(`/api/members?_t=${Date.now()}`, {
       cache: "no-store",
     });
     if (res.ok) {
       const data: Member[] = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        }
+        broadcastUpdate(data);
         return data;
       }
     }
   } catch (error) {
-    console.warn("Could not fetch live cloud members, using local storage:", error);
+    console.warn("Cloud fetch skipped, using local data:", error);
   }
   return getMembers();
 }
 
-// Save member to shared cloud database
+// Update local member immediately and sync to cloud in background
 export async function saveMemberCloud(data: {
   block: string;
   flatNo: string;
@@ -66,30 +102,26 @@ export async function saveMemberCloud(data: {
   phone?: string;
   additionalDetails?: string;
 }): Promise<Member> {
-  // Update local storage first for instant feedback
+  // 1. Immediately update local data so all pages see the new value instantly
   const localRecord = saveMember(data);
 
-  try {
-    const res = await fetch("/api/members", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    if (res.ok) {
-      const json = await res.json();
-      if (json.member) {
-        return json.member;
-      }
-    }
-  } catch (error) {
-    console.error("Failed to sync member to cloud:", error);
-  }
+  // 2. Background sync to Vercel Blob cloud (does not block local UI)
+  fetch("/api/members", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).catch((err) => {
+    console.error("Background cloud sync error:", err);
+  });
 
   return localRecord;
 }
 
-export function findMember(block: string, flatNo: string, list: Member[] = getMembers()): Member | undefined {
+export function findMember(
+  block: string,
+  flatNo: string,
+  list: Member[] = getMembers()
+): Member | undefined {
   const id = `${block.toUpperCase()}-${flatNo.trim()}`;
   return list.find(
     (m) =>
@@ -98,6 +130,7 @@ export function findMember(block: string, flatNo: string, list: Member[] = getMe
   );
 }
 
+// Immediate synchronous local update
 export function saveMember(data: {
   block: string;
   flatNo: string;
@@ -105,7 +138,7 @@ export function saveMember(data: {
   phone?: string;
   additionalDetails?: string;
 }): Member {
-  const members = getMembers();
+  const current = [...getMembers()];
   const block = data.block.toUpperCase().trim();
   const flatNo = String(data.flatNo).trim();
   const id = `${block}-${flatNo}`;
@@ -114,7 +147,7 @@ export function saveMember(data: {
   const phone = (data.phone || "").trim().replace(/\D/g, "").slice(-10);
   const isOccupied = Boolean(name || phone);
 
-  const existingIndex = members.findIndex((m) => m.id === id);
+  const existingIndex = current.findIndex((m) => m.id === id);
 
   const record: Member = {
     id,
@@ -129,21 +162,16 @@ export function saveMember(data: {
   };
 
   if (existingIndex !== -1) {
-    members[existingIndex] = {
-      ...members[existingIndex],
+    current[existingIndex] = {
+      ...current[existingIndex],
       ...record,
     };
   } else {
-    members.push(record);
+    current.push(record);
   }
 
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
-    } catch (e) {
-      console.error("Failed to save to localStorage:", e);
-    }
-  }
+  // Update in-memory, localStorage, and notify all subscribers
+  broadcastUpdate(current);
 
   return record;
 }
@@ -153,7 +181,15 @@ function cleanSlice(val: string): string {
 }
 
 export function exportDirectoryCSV(members: Member[]): void {
-  const headers = ["Block", "Flat No", "Floor", "Resident Name", "Mobile Number", "Status", "Additional Details"];
+  const headers = [
+    "Block",
+    "Flat No",
+    "Floor",
+    "Resident Name",
+    "Mobile Number",
+    "Status",
+    "Additional Details",
+  ];
   const rows = members.map((m) => [
     `"${m.block}"`,
     `"${m.flatNo}"`,
@@ -165,11 +201,15 @@ export function exportDirectoryCSV(members: Member[]): void {
   ]);
 
   const csvContent =
-    "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    "data:text/csv;charset=utf-8,\uFEFF" +
+    [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `Ganesh_Heritage_Members_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute(
+    "download",
+    `Ganesh_Heritage_Members_${new Date().toISOString().slice(0, 10)}.csv`
+  );
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

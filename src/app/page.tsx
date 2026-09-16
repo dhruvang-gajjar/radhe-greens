@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Search, X, Phone, MessageCircle } from "lucide-react";
-import { getMembers, defaultMembers, fetchLiveMembers, Member } from "@/lib/storage";
+import { getMembers, defaultMembers, fetchLiveMembers, subscribeMembers, Member } from "@/lib/storage";
 import { PhoneActionModal } from "@/components/PhoneActionModal";
 
 export default function DirectoryPage() {
@@ -13,33 +13,32 @@ export default function DirectoryPage() {
   const [activeModalMember, setActiveModalMember] = useState<Member | null>(null);
 
   useEffect(() => {
-    // 1. Instant local read
-    setMembers(getMembers());
+    // 1. Read latest local data immediately
+    setMembers([...getMembers()]);
 
-    // 2. Fetch live data from shared cloud database
-    const syncCloudData = () => {
-      fetchLiveMembers().then((data) => {
-        if (data && data.length > 0) {
-          setMembers(data);
-        }
-      });
-    };
-
-    syncCloudData();
-
-    // 3. Multi-device sync: auto-refresh when tab/phone is focused
-    const handleFocus = () => syncCloudData();
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") handleFocus();
+    // 2. Subscribe to any local updates in the app (instant update without refresh)
+    const unsubscribe = subscribeMembers((updated) => {
+      setMembers([...updated]);
     });
 
-    // 4. Polling every 20 seconds for cross-device live updates
-    const interval = setInterval(syncCloudData, 20000);
+    // 3. Listen for window events across tabs
+    const handleSync = () => {
+      setMembers([...getMembers()]);
+    };
+    window.addEventListener("gh_members_updated", handleSync);
+    window.addEventListener("storage", handleSync);
+
+    // 4. Single cloud sync on first load to fetch latest records
+    fetchLiveMembers().then((data) => {
+      if (data && data.length > 0) {
+        setMembers([...data]);
+      }
+    });
 
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      clearInterval(interval);
+      unsubscribe();
+      window.removeEventListener("gh_members_updated", handleSync);
+      window.removeEventListener("storage", handleSync);
     };
   }, []);
 

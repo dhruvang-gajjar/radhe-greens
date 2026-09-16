@@ -93,8 +93,9 @@ export default function AddPage() {
 
       setSuccess(true);
       setTimeout(() => {
+        router.refresh();
         router.push("/");
-      }, 700);
+      }, 400);
     } catch (err) {
       console.error(err);
       setError("Could not save details to cloud. Please try again.");
