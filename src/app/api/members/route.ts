@@ -3,6 +3,7 @@ import { put, list } from "@vercel/blob";
 import initialMembers from "@/data/members.json";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface Member {
   id: string;
@@ -25,9 +26,14 @@ async function getMembersFromBlob(): Promise<Member[]> {
     const existingBlob = blobs.find((b) => b.pathname === BLOB_FILENAME);
 
     if (existingBlob) {
-      // Add timestamp to bypass CDN cache on fetch
-      const res = await fetch(`${existingBlob.url}?t=${Date.now()}`, {
+      // Use downloadUrl (?download=1) to ensure latest uncached content from Vercel Blob
+      const fetchUrl = existingBlob.downloadUrl || `${existingBlob.url}?download=1`;
+      const res = await fetch(`${fetchUrl}&_nocache=${Date.now()}`, {
         cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
       });
       if (res.ok) {
         const data = await res.json();
@@ -54,7 +60,9 @@ export async function GET() {
   const members = await getMembersFromBlob();
   return NextResponse.json(members, {
     headers: {
-      "Cache-Control": "no-store, max-age=0",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+      Pragma: "no-cache",
+      Expires: "0",
     },
   });
 }
