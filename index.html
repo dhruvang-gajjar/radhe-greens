@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ganesh Heritage - Member Directory</title>
+  <meta name="description" content="Mobile-friendly searchable member directory for Ganesh Heritage Co-operative Housing Society">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <a href="index.html" class="brand-wrapper">
+        <div class="brand-icon">🏢</div>
+        <div>
+          <h1 class="brand-title">Ganesh Heritage</h1>
+          <p class="brand-subtitle">Resident Directory & Portal</p>
+        </div>
+      </a>
+      <div class="header-actions">
+        <a href="add.html" class="header-btn" title="Add or Update Member">
+          <span>+</span> Add Member
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <!-- View Container: Directory View -->
+    <div id="view-directory">
+      
+      <!-- Society Quick Stats Banner -->
+      <section class="stats-banner" id="statsBanner">
+        <div class="stats-row">
+          <div class="stat-item">
+            <span class="stat-value" id="statOccupied">63</span>
+            <span class="stat-label">Registered</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="statVacant">161</span>
+            <span class="stat-label">Available</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">224</span>
+            <span class="stat-label">Total Flats</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="statPercent">28%</span>
+            <span class="stat-label">Occupancy</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Search Section -->
+      <section class="search-container">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="search" 
+            id="searchInput" 
+            class="search-input" 
+            placeholder="Search flat (e.g. 702), name, phone..."
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+          >
+          <button id="searchClearBtn" class="search-clear-btn" aria-label="Clear search">✕</button>
+        </div>
+      </section>
+
+      <!-- Block Filter Pills -->
+      <section class="filters-section">
+        <div class="filter-scroll-wrapper" id="blockFilters">
+          <button class="filter-pill active" data-block="ALL">All Blocks</button>
+          <button class="filter-pill" data-block="A">Block A</button>
+          <button class="filter-pill" data-block="B">Block B</button>
+          <button class="filter-pill" data-block="C">Block C</button>
+          <button class="filter-pill" data-block="D">Block D</button>
+        </div>
+      </section>
+
+      <!-- Secondary Status & Sort Filters -->
+      <section class="secondary-filters">
+        <div class="status-toggle-group" id="statusFilterGroup">
+          <button class="status-toggle-btn active" data-status="OCCUPIED">Registered (<span id="countRegistered">63</span>)</button>
+          <button class="status-toggle-btn" data-status="ALL">All (224)</button>
+          <button class="status-toggle-btn" data-status="VACANT">Vacant (<span id="countVacant">161</span>)</button>
+        </div>
+        <div class="results-count-text" id="resultsCount">Showing 63 members</div>
+      </section>
+
+      <!-- Members Directory List -->
+      <section class="members-list" id="membersList">
+        <!-- Rendered dynamically by JavaScript -->
+      </section>
+
+      <!-- Empty State (hidden by default) -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-state-icon">🔎</div>
+        <h3 class="empty-state-title">No members found</h3>
+        <p class="empty-state-desc">Try checking the spelling or switch block / occupancy filters.</p>
+        <a href="add.html" class="header-btn" style="display: inline-flex;">+ Add New Member</a>
+      </div>
+
+    </div>
+
+    <!-- View Container: Towers / Blocks View -->
+    <div id="view-blocks" style="display: none; margin-top: 16px;">
+      <h2 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 4px;">Tower Occupancy Grid</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Tap any unit to view details or register resident.</p>
+      
+      <div id="towerBlocksContainer">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- View Container: Tools & Management View -->
+    <div id="view-tools" style="display: none; margin-top: 16px;">
+      <h2 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 4px;">Society Management & Data</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Export directory or manage society member records.</p>
+      
+      <div class="info-card">
+        <h3 style="font-size: 1rem; font-weight: 750; margin-bottom: 12px; color: var(--primary);">📊 Directory Breakdown</h3>
+        <div class="info-item">
+          <span class="info-item-label">Society Name</span>
+          <span class="info-item-val">Ganesh Heritage</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-label">Total Blocks</span>
+          <span class="info-item-val">4 Blocks (A, B, C, D)</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-label">Floors per Block</span>
+          <span class="info-item-val">14 Floors (Flats 101–1404)</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-label">Total Flats</span>
+          <span class="info-item-val">224 Units</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-label">Block A Members</span>
+          <span class="info-item-val" id="toolsCountA">14</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-label">Block B Members</span>
+          <span class="info-item-val" id="toolsCountB">21</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-label">Block C Members</span>
+          <span class="info-item-val" id="toolsCountC">9</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-label">Block D Members</span>
+          <span class="info-item-val" id="toolsCountD">19</span>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h3 style="font-size: 1rem; font-weight: 750; margin-bottom: 12px; color: var(--primary);">💾 Backup & Exports</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Download the latest member list to open in Microsoft Excel, Google Sheets, or share on WhatsApp.</p>
+        
+        <button class="btn-submit" onclick="exportDirectoryCSV()" style="margin-bottom: 10px;">
+          <span>📄</span> Export to Excel / CSV
+        </button>
+        <button class="btn-secondary" onclick="exportDirectoryJSON()" style="margin-top: 0; margin-bottom: 16px;">
+          <span>📦</span> Download JSON Backup
+        </button>
+        
+        <hr style="border: none; border-top: 1px solid var(--border-light); margin: 16px 0;">
+        
+        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 6px; color: var(--danger);">Reset Data</h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">Restore all member records to the original PDF state.</p>
+        <button class="btn-secondary" onclick="handleResetData()" style="color: var(--danger); border-color: #fecaca; margin-top: 0;">
+          🔄 Reset to Original PDF Data
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="nav-grid">
+      <a href="#directory" class="nav-item active" id="navDirectory">
+        <span class="nav-icon">🔍</span>
+        <span>Directory</span>
+      </a>
+      <a href="add.html" class="nav-item" id="navAdd">
+        <span class="nav-icon">➕</span>
+        <span>Add Member</span>
+      </a>
+      <a href="#blocks" class="nav-item" id="navBlocks">
+        <span class="nav-icon">🏢</span>
+        <span>Towers</span>
+      </a>
+      <a href="#tools" class="nav-item" id="navTools">
+        <span class="nav-icon">⚙️</span>
+        <span>Export</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // State management for Directory
+    let currentBlockFilter = 'ALL';
+    let currentStatusFilter = 'OCCUPIED';
+    let searchQuery = '';
+
+    // Elements
+    const searchInput = document.getElementById('searchInput');
+    const searchClearBtn = document.getElementById('searchClearBtn');
+    const membersList = document.getElementById('membersList');
+    const emptyState = document.getElementById('emptyState');
+    const resultsCount = document.getElementById('resultsCount');
+    const blockFilterButtons = document.querySelectorAll('#blockFilters .filter-pill');
+    const statusFilterButtons = document.querySelectorAll('#statusFilterGroup .status-toggle-btn');
+
+    // Stats Elements
+    const statOccupied = document.getElementById('statOccupied');
+    const statVacant = document.getElementById('statVacant');
+    const statPercent = document.getElementById('statPercent');
+    const countRegistered = document.getElementById('countRegistered');
+    const countVacant = document.getElementById('countVacant');
+
+    // Navigation Tabs
+    const viewDirectory = document.getElementById('view-directory');
+    const viewBlocks = document.getElementById('view-blocks');
+    const viewTools = document.getElementById('view-tools');
+    const navItems = document.querySelectorAll('.bottom-nav .nav-item');
+
+    function updateStats() {
+      const all = getMembersData();
+      const occupied = all.filter(m => m.name || m.phone);
+      const vacant = all.filter(m => !m.name && !m.phone);
+      const pct = Math.round((occupied.length / all.length) * 100);
+
+      statOccupied.textContent = occupied.length;
+      statVacant.textContent = vacant.length;
+      statPercent.textContent = pct + '%';
+      countRegistered.textContent = occupied.length;
+      countVacant.textContent = vacant.length;
+
+      // Update tools counts
+      ['A', 'B', 'C', 'D'].forEach(b => {
+        const el = document.getElementById(`toolsCount${b}`);
+        if (el) {
+          el.textContent = occupied.filter(m => m.block === b).length;
+        }
+      });
+    }
+
+    function renderMembers() {
+      const allMembers = getMembersData();
+      const query = searchQuery.trim().toLowerCase();
+
+      const filtered = allMembers.filter(member => {
+        // Block filter
+        if (currentBlockFilter !== 'ALL' && member.block !== currentBlockFilter) {
+          return false;
+        }
+
+        // Status filter
+        const isOccupied = Boolean(member.name || member.phone);
+        if (currentStatusFilter === 'OCCUPIED' && !isOccupied) return false;
+        if (currentStatusFilter === 'VACANT' && isOccupied) return false;
+
+        // Search query filter
+        if (query) {
+          const matchFlat = String(member.flatNo).toLowerCase().includes(query);
+          const matchUnit = member.id.toLowerCase().includes(query);
+          const matchName = (member.name || '').toLowerCase().includes(query);
+          const matchPhone = (member.phone || '').includes(query);
+          const matchFloor = `floor ${member.floor}`.includes(query) || `${member.floor}th floor`.includes(query);
+          const matchDetails = (member.additionalDetails || '').toLowerCase().includes(query);
+          const matchType = (member.residentType || '').toLowerCase().includes(query);
+
+          if (!matchFlat && !matchUnit && !matchName && !matchPhone && !matchFloor && !matchDetails && !matchType) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      // Update count text
+      resultsCount.textContent = `Showing ${filtered.length} of ${allMembers.length} units`;
+
+      if (filtered.length === 0) {
+        membersList.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+
+      // Render cards
+      membersList.innerHTML = filtered.map(m => {
+        const isOccupied = Boolean(m.name || m.phone);
+        const blockClass = `block-${m.block.toLowerCase()}`;
+        const initials = isOccupied ? getInitials(m.name) : '—';
+        const formattedPhone = m.phone ? `+91 ${m.phone.slice(0, 5)} ${m.phone.slice(5)}` : '';
+        const floorSuffix = getOrdinalSuffix(m.floor);
+
+        return `
+          <article class="member-card ${isOccupied ? '' : 'vacant'}" id="card-${m.id}">
+            <div class="card-header-row">
+              <div class="flat-badge ${blockClass}">
+                <span>Block ${m.block}</span>
+                <span>•</span>
+                <span>Flat ${m.flatNo}</span>
+              </div>
+              <div class="floor-tag">${m.floor}${floorSuffix} Floor</div>
+            </div>
+
+            <div class="card-body-row">
+              <div class="member-avatar ${isOccupied ? 'occupied' : ''}">
+                ${initials}
+              </div>
+              <div class="member-info">
+                <div class="member-name ${isOccupied ? '' : 'unregistered'}">
+                  ${m.name || 'Vacant / Unregistered'}
+                </div>
+                ${m.phone ? `
+                  <div class="member-phone-row">
+                    <span class="phone-icon">📞</span>
+                    <span>${formattedPhone}</span>
+                  </div>
+                ` : `
+                  <div class="member-phone-row" style="color: var(--text-subtle);">
+                    <span>No phone registered</span>
+                  </div>
+                `}
+
+                ${(m.additionalDetails || m.residentType) ? `
+                  <div class="additional-details-box">
+                    ${m.residentType ? `<div class="detail-line"><strong>Type:</strong> ${m.residentType}</div>` : ''}
+                    ${m.additionalDetails ? `<div class="detail-line"><strong>Details:</strong> ${m.additionalDetails}</div>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <div class="card-actions-row">
+              ${isOccupied && m.phone ? `
+                <a href="tel:+91${m.phone}" class="btn-action btn-call" title="Call Resident">
+                  <span>📞</span> Call
+                </a>
+                <a href="https://wa.me/91${m.phone}?text=Hello%20${encodeURIComponent(m.name || 'Member')}%2C%20greeting%20from%20Ganesh%20Heritage" target="_blank" rel="noopener" class="btn-action btn-whatsapp" title="WhatsApp Message">
+                  <span>💬</span> WhatsApp
+                </a>
+                <button type="button" class="btn-action btn-edit" onclick="copyToClipboard('${m.phone}', 'Phone number')" title="Copy Phone Number">
+                  <span>📋</span>
+                </button>
+              ` : ''}
+              
+              ${isOccupied ? `
+                <a href="add.html?block=${m.block}&flat=${m.flatNo}" class="btn-action btn-edit ${m.phone ? '' : 'btn-claim'}" title="Edit Resident Info">
+                  <span>✏️</span> Edit
+                </a>
+              ` : `
+                <a href="add.html?block=${m.block}&flat=${m.flatNo}" class="btn-action btn-claim">
+                  <span>➕</span> Register Flat ${m.block}-${m.flatNo}
+                </a>
+              `}
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function getOrdinalSuffix(i) {
+      const j = i % 10, k = i % 100;
+      if (j == 1 && k != 11) return "st";
+      if (j == 2 && k != 12) return "nd";
+      if (j == 3 && k != 13) return "rd";
+      return "th";
+    }
+
+    function renderTowersView() {
+      const allMembers = getMembersData();
+      const container = document.getElementById('towerBlocksContainer');
+      const blocks = ['A', 'B', 'C', 'D'];
+
+      container.innerHTML = blocks.map(b => {
+        const bMembers = allMembers.filter(m => m.block === b);
+        const occupiedCount = bMembers.filter(m => m.name || m.phone).length;
+
+        // Group by floor 14 down to 1
+        return `
+          <div class="tower-section">
+            <div class="tower-header">
+              <h3 class="tower-title">Block ${b}</h3>
+              <span class="tower-badge">${occupiedCount} / 56 Registered</span>
+            </div>
+            <div class="tower-grid">
+              ${bMembers.map(m => {
+                const isOccupied = Boolean(m.name || m.phone);
+                return `
+                  <a href="add.html?block=${m.block}&flat=${m.flatNo}" class="grid-flat-cell ${isOccupied ? 'occupied' : 'vacant'}" title="${isOccupied ? m.name + ' (' + m.phone + ')' : 'Vacant'}">
+                    <span>${m.flatNo}</span>
+                    <span class="grid-flat-name">${isOccupied ? m.name : '—'}</span>
+                  </a>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Search input handlers
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      if (searchQuery.length > 0) {
+        searchClearBtn.classList.add('active');
+      } else {
+        searchClearBtn.classList.remove('active');
+      }
+      renderMembers();
+    });
+
+    searchClearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      searchClearBtn.classList.remove('active');
+      searchInput.focus();
+      renderMembers();
+    });
+
+    // Block filter buttons
+    blockFilterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        blockFilterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentBlockFilter = btn.getAttribute('data-block');
+        renderMembers();
+      });
+    });
+
+    // Status filter buttons
+    statusFilterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        statusFilterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStatusFilter = btn.getAttribute('data-status');
+        renderMembers();
+      });
+    });
+
+    // Reset Data Handler
+    function handleResetData() {
+      if (confirm('Are you sure you want to reset all data back to the original PDF records? Any custom added members will be replaced.')) {
+        resetToPDFData();
+        updateStats();
+        renderMembers();
+        renderTowersView();
+        showToast('Restored original PDF records');
+      }
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      viewDirectory.style.display = 'none';
+      viewBlocks.style.display = 'none';
+      viewTools.style.display = 'none';
+
+      document.getElementById('navDirectory').classList.remove('active');
+      document.getElementById('navBlocks').classList.remove('active');
+      document.getElementById('navTools').classList.remove('active');
+
+      if (tabId === 'blocks') {
+        viewBlocks.style.display = 'block';
+        document.getElementById('navBlocks').classList.add('active');
+        renderTowersView();
+      } else if (tabId === 'tools') {
+        viewTools.style.display = 'block';
+        document.getElementById('navTools').classList.add('active');
+      } else {
+        viewDirectory.style.display = 'block';
+        document.getElementById('navDirectory').classList.add('active');
+      }
+    }
+
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.replace('#', '');
+      switchTab(hash);
+    });
+
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', () => {
+      updateStats();
+      const initialHash = window.location.hash.replace('#', '');
+      if (initialHash === 'blocks' || initialHash === 'tools') {
+        switchTab(initialHash);
+      } else {
+        renderMembers();
+      }
+    });
+  </script>
+</body>
+</html>
