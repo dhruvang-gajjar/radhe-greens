@@ -133,7 +133,7 @@ export default function DirectoryPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search flat no, resident name, phone..."
-          className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-9 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition shadow-sm"
+          className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-9 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition shadow-sm"
         />
         {search && (
           <button

@@ -29,14 +29,29 @@ export function subscribeMembers(cb: (members: Member[]) => void): () => void {
   };
 }
 
+// Guarantee all 224 flats exist and are never lost
+function mergeWithBaseline(records: Member[]): Member[] {
+  const map = new Map<string, Member>();
+  defaultMembers.forEach((m) => map.set(m.id, m));
+  if (Array.isArray(records)) {
+    records.forEach((m) => {
+      if (m && m.id && map.has(m.id)) {
+        map.set(m.id, { ...map.get(m.id)!, ...m });
+      }
+    });
+  }
+  return Array.from(map.values());
+}
+
 function broadcastUpdate(updatedList: Member[]) {
-  memoryMembers = [...updatedList];
+  memoryMembers = mergeWithBaseline(updatedList);
   if (typeof window !== "undefined") {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryMembers));
       window.dispatchEvent(new CustomEvent(UPDATE_EVENT, { detail: memoryMembers }));
     } catch (e) {
-      console.error("Storage error:", e);
+      // Safe fallback if private browsing or storage quota exceeded
+      console.warn("localStorage write failed (private mode or full):", e);
     }
   }
   listeners.forEach((listener) => {
@@ -48,7 +63,7 @@ function broadcastUpdate(updatedList: Member[]) {
   });
 }
 
-// Get current members (memory -> localStorage -> default)
+// Get current members (memory -> localStorage -> default baseline)
 export function getMembers(): Member[] {
   if (memoryMembers && memoryMembers.length > 0) {
     return memoryMembers;
@@ -63,16 +78,25 @@ export function getMembers(): Member[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryMembers = parsed;
+        memoryMembers = mergeWithBaseline(parsed);
         return memoryMembers;
       }
     }
   } catch (e) {
-    console.warn("Error reading localStorage:", e);
+    console.warn("localStorage read failed:", e);
   }
 
   memoryMembers = [...defaultMembers];
   return memoryMembers;
+}
+
+// Normalize phone digits
+export function cleanPhoneNumber(raw: string): string {
+  if (!raw) return "";
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
+  return digits.slice(-10);
 }
 
 // Fetch live data from cloud once on load without continuous polling
@@ -82,14 +106,15 @@ export async function fetchLiveMembers(): Promise<Member[]> {
       cache: "no-store",
     });
     if (res.ok) {
-      const data: Member[] = await res.json();
+      const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        broadcastUpdate(data);
-        return data;
+        const merged = mergeWithBaseline(data);
+        broadcastUpdate(merged);
+        return merged;
       }
     }
   } catch (error) {
-    console.warn("Cloud fetch skipped, using local data:", error);
+    console.warn("Cloud fetch skipped, using resilient local data:", error);
   }
   return getMembers();
 }
@@ -111,7 +136,7 @@ export async function saveMemberCloud(data: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   }).catch((err) => {
-    console.error("Background cloud sync error:", err);
+    console.warn("Background cloud sync deferred/offline:", err);
   });
 
   return localRecord;
@@ -122,7 +147,7 @@ export function findMember(
   flatNo: string,
   list: Member[] = getMembers()
 ): Member | undefined {
-  const id = `${block.toUpperCase()}-${flatNo.trim()}`;
+  const id = `${String(block).toUpperCase().trim()}-${String(flatNo).trim()}`;
   return list.find(
     (m) =>
       m.id.toUpperCase() === id ||
@@ -139,12 +164,12 @@ export function saveMember(data: {
   additionalDetails?: string;
 }): Member {
   const current = [...getMembers()];
-  const block = data.block.toUpperCase().trim();
-  const flatNo = String(data.flatNo).trim();
+  const block = String(data.block || "").toUpperCase().trim();
+  const flatNo = String(data.flatNo || "").trim();
   const id = `${block}-${flatNo}`;
   const floor = parseInt(flatNo.length > 2 ? cleanSlice(flatNo) : flatNo[0], 10) || 1;
-  const name = (data.name || "").trim();
-  const phone = (data.phone || "").trim().replace(/\D/g, "").slice(-10);
+  const name = String(data.name || "").trim().slice(0, 100);
+  const phone = cleanPhoneNumber(String(data.phone || ""));
   const isOccupied = Boolean(name || phone);
 
   const existingIndex = current.findIndex((m) => m.id === id);
@@ -157,7 +182,7 @@ export function saveMember(data: {
     name,
     phone,
     status: isOccupied ? "Occupied" : "Vacant",
-    additionalDetails: (data.additionalDetails || "").trim(),
+    additionalDetails: String(data.additionalDetails || "").trim().slice(0, 500),
     updatedAt: new Date().toISOString(),
   };
 
@@ -170,9 +195,7 @@ export function saveMember(data: {
     current.push(record);
   }
 
-  // Update in-memory, localStorage, and notify all subscribers
   broadcastUpdate(current);
-
   return record;
 }
 

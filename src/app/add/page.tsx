@@ -174,7 +174,7 @@ export default function AddPage() {
           <select
             value={selectedFlat}
             onChange={(e) => setSelectedFlat(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
           >
             {blockFlats.map((m) => {
               const occupied = Boolean(m.name || m.phone);
@@ -207,7 +207,7 @@ export default function AddPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Ramesh Patel"
             required
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
           />
         </div>
 
@@ -227,7 +227,7 @@ export default function AddPage() {
               onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="98765 43210"
               maxLength={10}
-              className="w-full bg-white border border-slate-200 rounded-r-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+              className="w-full bg-white border border-slate-200 rounded-r-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
             />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">10-digit number for calling and WhatsApp</p>
@@ -243,7 +243,7 @@ export default function AddPage() {
             onChange={(e) => setAdditionalDetails(e.target.value)}
             placeholder="e.g. Car No: GJ-01-XX-1234, Alternate contact, or notes..."
             rows={2}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
           />
         </div>
 
