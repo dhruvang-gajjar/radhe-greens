@@ -1,10 +1,10 @@
 # Ganesh Heritage Member Directory & Portal 🏢
 
-A modern, mobile-first **Next.js (App Router)** searchable member directory and resident registration application built for **Ganesh Heritage Co-operative Housing Society**.
+A modern, mobile-first **Next.js (App Router)** searchable resident directory and portal built for **Ganesh Heritage Co-operative Housing Society**, powered by **Neon PostgreSQL** and **Prisma ORM**.
 
 🌐 **Live URL**: [https://ganesh-heritage.vercel.app](https://ganesh-heritage.vercel.app)
 
-Data was extracted and verified directly from `GANESH HERITAGE MEMBER.pdf` (224 flats, 63 registered members across 4 blocks).
+Covers all 224 flats across 4 blocks (A, B, C, D) with instant search, multi-contact support for family members, and one-click data export.
 
 ---
 
