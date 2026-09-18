@@ -249,6 +249,29 @@ export default function DirectoryPage() {
         )}
       </div>
 
+      {/* Backup & Data Export (Zero Vendor Lock-In) */}
+      <footer className="pt-6 pb-2 text-center text-xs text-slate-400 flex items-center justify-center gap-3">
+        <span>Ganesh Heritage</span>
+        <span>•</span>
+        <a
+          href="/api/export?format=json"
+          download
+          className="text-teal-700 hover:text-teal-800 hover:underline font-medium"
+          title="Download full database backup as JSON"
+        >
+          Export JSON
+        </a>
+        <span>•</span>
+        <a
+          href="/api/export?format=csv"
+          download
+          className="text-teal-700 hover:text-teal-800 hover:underline font-medium"
+          title="Download full database backup as CSV"
+        >
+          Export CSV
+        </a>
+      </footer>
+
       {/* Action Modal for Phone */}
       {activeModalMember && (
         <PhoneActionModal
