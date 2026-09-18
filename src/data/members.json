@@ -239,7 +239,8 @@
     "phone": "",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T17:25:16.938Z"
   },
   {
     "id": "A-603",
@@ -324,10 +325,11 @@
     "flatNo": "802",
     "floor": 8,
     "name": "DIP PATEL",
-    "phone": "",
+    "phone": "9825648164",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T16:06:08.572Z"
   },
   {
     "id": "A-803",
@@ -500,10 +502,11 @@
     "flatNo": "1202",
     "floor": 12,
     "name": "MEHUL PATEL",
-    "phone": "",
+    "phone": "9033023223",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T16:08:02.662Z"
   },
   {
     "id": "A-1203",
@@ -565,11 +568,12 @@
     "block": "A",
     "flatNo": "1304",
     "floor": 13,
-    "name": "NARENDRABHAI",
+    "name": "NARENDRA CHATURVEDI",
     "phone": "9510875708",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T16:59:14.118Z"
   },
   {
     "id": "A-1401",
@@ -587,11 +591,12 @@
     "block": "A",
     "flatNo": "1402",
     "floor": 14,
-    "name": "",
-    "phone": "",
-    "status": "Vacant",
+    "name": "Jaysinh Rajput",
+    "phone": "9913093777",
+    "status": "Occupied",
     "residentType": "",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T15:26:41.079Z"
   },
   {
     "id": "A-1403",
@@ -819,10 +824,11 @@
     "flatNo": "503",
     "floor": 5,
     "name": "DISHANT JOSHI",
-    "phone": "",
+    "phone": "8460786256",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T16:10:45.921Z"
   },
   {
     "id": "B-504",
@@ -983,11 +989,12 @@
     "block": "B",
     "flatNo": "902",
     "floor": 9,
-    "name": "",
-    "phone": "",
-    "status": "Vacant",
+    "name": "Kirtikumar M Rathod",
+    "phone": "9427402155",
+    "status": "Occupied",
     "residentType": "",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T17:29:43.827Z"
   },
   {
     "id": "B-903",
@@ -1027,11 +1034,12 @@
     "block": "B",
     "flatNo": "1002",
     "floor": 10,
-    "name": "KRUPALSINGH CHAVDA",
+    "name": "KRUPALSINH CHAVDA",
     "phone": "7600230620",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T17:00:07.436Z"
   },
   {
     "id": "B-1003",
@@ -1094,10 +1102,11 @@
     "flatNo": "1104",
     "floor": 11,
     "name": "KARAN BHAVSAR",
-    "phone": "",
+    "phone": "9033818676",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T15:14:25.520Z"
   },
   {
     "id": "B-1201",
@@ -1258,22 +1267,24 @@
     "block": "C",
     "flatNo": "103",
     "floor": 1,
-    "name": "",
-    "phone": "",
-    "status": "Vacant",
+    "name": "MAHESH SUTHAR",
+    "phone": "7229075885",
+    "status": "Occupied",
     "residentType": "",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T16:39:47.294Z"
   },
   {
     "id": "C-104",
     "block": "C",
     "flatNo": "104",
     "floor": 1,
-    "name": "JYOSTNABEN PATEL",
-    "phone": "9998873007",
+    "name": "JYOTSNABEN PATEL",
+    "phone": "9427480460",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T17:17:58.084Z"
   },
   {
     "id": "C-201",
@@ -2018,10 +2029,11 @@
     "flatNo": "404",
     "floor": 4,
     "name": "ASHISH PATEL",
-    "phone": "9428411666",
+    "phone": "9879033699",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "9428411666",
+    "updatedAt": "2026-09-16T16:04:50.579Z"
   },
   {
     "id": "D-501",
@@ -2131,7 +2143,8 @@
     "phone": "8155896243",
     "status": "Occupied",
     "residentType": "Owner",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T14:35:26.765Z"
   },
   {
     "id": "D-703",
@@ -2182,11 +2195,12 @@
     "block": "D",
     "flatNo": "803",
     "floor": 8,
-    "name": "",
-    "phone": "",
-    "status": "Vacant",
+    "name": "NARESHBHAI PATEL",
+    "phone": "9428646250",
+    "status": "Occupied",
     "residentType": "",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T17:02:25.529Z"
   },
   {
     "id": "D-804",
@@ -2457,10 +2471,11 @@
     "block": "D",
     "flatNo": "1404",
     "floor": 14,
-    "name": "",
-    "phone": "",
-    "status": "Vacant",
+    "name": "SACHIN RAVATE",
+    "phone": "9925033632",
+    "status": "Occupied",
     "residentType": "",
-    "additionalDetails": ""
+    "additionalDetails": "",
+    "updatedAt": "2026-09-16T15:12:48.099Z"
   }
 ]
