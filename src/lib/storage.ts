@@ -1,5 +1,11 @@
 import initialMembers from "@/data/members.json";
 
+export interface FamilyMember {
+  name: string;
+  phone: string;
+  relation?: string;
+}
+
 export interface Member {
   id: string;
   block: string;
@@ -10,6 +16,7 @@ export interface Member {
   status: "Occupied" | "Vacant";
   residentType?: string;
   additionalDetails?: string;
+  familyMembers?: FamilyMember[];
   updatedAt?: string;
 }
 
@@ -126,11 +133,12 @@ export async function saveMemberCloud(data: {
   name: string;
   phone?: string;
   additionalDetails?: string;
+  familyMembers?: FamilyMember[];
 }): Promise<Member> {
   // 1. Immediately update local data so all pages see the new value instantly
   const localRecord = saveMember(data);
 
-  // 2. Background sync to Vercel Blob cloud (does not block local UI)
+  // 2. Background sync to database API (does not block local UI)
   fetch("/api/members", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -162,6 +170,7 @@ export function saveMember(data: {
   name: string;
   phone?: string;
   additionalDetails?: string;
+  familyMembers?: FamilyMember[];
 }): Member {
   const current = [...getMembers()];
   const block = String(data.block || "").toUpperCase().trim();
@@ -170,7 +179,17 @@ export function saveMember(data: {
   const floor = parseInt(flatNo.length > 2 ? cleanSlice(flatNo) : flatNo[0], 10) || 1;
   const name = String(data.name || "").trim().slice(0, 100);
   const phone = cleanPhoneNumber(String(data.phone || ""));
-  const isOccupied = Boolean(name || phone);
+  const sanitizedFamily = Array.isArray(data.familyMembers)
+    ? data.familyMembers
+        .map((f) => ({
+          name: String(f.name || "").trim().slice(0, 100),
+          phone: cleanPhoneNumber(String(f.phone || "")),
+          relation: String(f.relation || "").trim().slice(0, 50),
+        }))
+        .filter((f) => Boolean(f.name || f.phone))
+    : [];
+
+  const isOccupied = Boolean(name || phone || sanitizedFamily.length > 0);
 
   const existingIndex = current.findIndex((m) => m.id === id);
 
@@ -183,6 +202,7 @@ export function saveMember(data: {
     phone,
     status: isOccupied ? "Occupied" : "Vacant",
     additionalDetails: String(data.additionalDetails || "").trim().slice(0, 500),
+    familyMembers: sanitizedFamily,
     updatedAt: new Date().toISOString(),
   };
 

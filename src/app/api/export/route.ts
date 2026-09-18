@@ -13,21 +13,29 @@ export async function GET(req: Request) {
     });
 
     if (format === "csv") {
-      const headers = ["id", "block", "flatNo", "floor", "name", "phone", "status", "residentType", "additionalDetails", "updatedAt"];
-      const rows = members.map((m) =>
-        [
+      const headers = ["id", "block", "flatNo", "floor", "name", "phone", "familyMembers", "status", "residentType", "additionalDetails", "updatedAt"];
+      const rows = members.map((m) => {
+        let familyStr = "";
+        if (Array.isArray(m.familyMembers)) {
+          familyStr = (m.familyMembers as any[])
+            .map((f) => `${f.name}${f.relation ? ` (${f.relation})` : ""}: ${f.phone}`)
+            .join("; ");
+        }
+
+        return [
           m.id,
           m.block,
           m.flatNo,
           m.floor,
           `"${(m.name || "").replace(/"/g, '""')}"`,
           `"${m.phone || ""}"`,
+          `"${familyStr.replace(/"/g, '""')}"`,
           m.status,
           `"${(m.residentType || "").replace(/"/g, '""')}"`,
           `"${(m.additionalDetails || "").replace(/"/g, '""')}"`,
           m.updatedAt.toISOString(),
-        ].join(",")
-      );
+        ].join(",");
+      });
 
       const csvContent = [headers.join(","), ...rows].join("\n");
 

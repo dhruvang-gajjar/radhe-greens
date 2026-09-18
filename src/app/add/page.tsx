@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, AlertCircle } from "lucide-react";
-import { getMembers, defaultMembers, findMember, saveMemberCloud, fetchLiveMembers, Member } from "@/lib/storage";
+import { ArrowLeft, Check, AlertCircle, Plus, Trash2, Users } from "lucide-react";
+import { getMembers, defaultMembers, findMember, saveMemberCloud, fetchLiveMembers, Member, FamilyMember } from "@/lib/storage";
 
 export default function AddPage() {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function AddPage() {
   const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [additionalDetails, setAdditionalDetails] = useState<string>("");
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [error, setError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
@@ -50,20 +51,43 @@ export default function AddPage() {
   useEffect(() => {
     if (!selectedBlock || !selectedFlat) return;
     const existing = findMember(selectedBlock, selectedFlat, members);
-    if (existing && (existing.name || existing.phone)) {
+    if (existing && (existing.name || existing.phone || (existing.familyMembers && existing.familyMembers.length > 0))) {
       setName(existing.name || "");
       setPhone(existing.phone || "");
       setAdditionalDetails(existing.additionalDetails || "");
+      setFamilyMembers(Array.isArray(existing.familyMembers) ? [...existing.familyMembers] : []);
     } else {
       setName("");
       setPhone("");
       setAdditionalDetails("");
+      setFamilyMembers([]);
     }
   }, [selectedBlock, selectedFlat, members]);
 
   const handlePhoneChange = (val: string) => {
     const clean = val.replace(/\D/g, "").slice(0, 10);
     setPhone(clean);
+  };
+
+  const handleAddFamilyMember = () => {
+    setFamilyMembers([
+      ...familyMembers,
+      { name: "", phone: "", relation: "Spouse" },
+    ]);
+  };
+
+  const handleUpdateFamilyMember = (index: number, field: keyof FamilyMember, val: string) => {
+    const updated = [...familyMembers];
+    if (field === "phone") {
+      updated[index][field] = val.replace(/\D/g, "").slice(0, 10);
+    } else {
+      updated[index][field] = val;
+    }
+    setFamilyMembers(updated);
+  };
+
+  const handleRemoveFamilyMember = (index: number) => {
+    setFamilyMembers(familyMembers.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,8 +100,17 @@ export default function AddPage() {
     }
 
     if (phone && phone.trim().length !== 10) {
-      setError("Please enter a valid 10-digit mobile number");
+      setError("Please enter a valid 10-digit mobile number for primary resident");
       return;
+    }
+
+    // Validate family members
+    for (let i = 0; i < familyMembers.length; i++) {
+      const f = familyMembers[i];
+      if (f.phone && f.phone.length !== 10) {
+        setError(`Please enter a valid 10-digit number for family member "${f.name || `#${i + 1}`}"`);
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -89,6 +122,7 @@ export default function AddPage() {
         name: name.trim(),
         phone: phone.trim(),
         additionalDetails: additionalDetails.trim(),
+        familyMembers,
       });
 
       setSuccess(true);
@@ -104,7 +138,11 @@ export default function AddPage() {
   };
 
   const currentResident = findMember(selectedBlock, selectedFlat);
-  const isCurrentlyOccupied = Boolean(currentResident?.name || currentResident?.phone);
+  const isCurrentlyOccupied = Boolean(
+    currentResident?.name ||
+      currentResident?.phone ||
+      (currentResident?.familyMembers && currentResident.familyMembers.length > 0)
+  );
 
   return (
     <div className="space-y-4 pb-12">
@@ -233,10 +271,129 @@ export default function AddPage() {
           <p className="text-[11px] text-slate-400 mt-1">10-digit number for calling and WhatsApp</p>
         </div>
 
-        {/* 5. Additional Details */}
+        {/* 5. Family Members / Secondary Contacts */}
+        <div className="space-y-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-teal-700" />
+              <span>5. Family Members</span>
+              <span className="text-slate-400 normal-case font-normal">(Optional)</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleAddFamilyMember}
+              className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Member</span>
+            </button>
+          </div>
+
+          {familyMembers.length === 0 ? (
+            <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3 text-center">
+              <p className="text-xs text-slate-500">No family members added yet.</p>
+              <button
+                type="button"
+                onClick={handleAddFamilyMember}
+                className="mt-1 text-xs font-semibold text-teal-700 hover:underline inline-flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add spouse, child, or parent contact</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {familyMembers.map((f, idx) => (
+                <div
+                  key={idx}
+                  className="bg-slate-50/80 border border-slate-200 rounded-xl p-3 space-y-2.5 relative"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                      Family Member #{idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFamilyMember(idx)}
+                      className="text-rose-500 hover:text-rose-700 p-1 rounded-md hover:bg-rose-50 transition"
+                      title="Remove this member"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Name */}
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        value={f.name}
+                        onChange={(e) =>
+                          handleUpdateFamilyMember(idx, "name", e.target.value)
+                        }
+                        placeholder="e.g. Geetaben Patel"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+                      />
+                    </div>
+
+                    {/* Relation */}
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                        Relation
+                      </label>
+                      <select
+                        value={f.relation || "Spouse"}
+                        onChange={(e) =>
+                          handleUpdateFamilyMember(idx, "relation", e.target.value)
+                        }
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+                      >
+                        {["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map(
+                          (r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                      Mobile Number
+                    </label>
+                    <div className="flex items-center">
+                      <span className="inline-flex items-center px-2.5 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border border-r-0 border-slate-200 rounded-l-lg">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        value={f.phone}
+                        onChange={(e) =>
+                          handleUpdateFamilyMember(idx, "phone", e.target.value)
+                        }
+                        placeholder="98765 12345"
+                        maxLength={10}
+                        className="w-full bg-white border border-slate-200 rounded-r-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 6. Additional Details */}
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-            5. Additional Details <span className="text-slate-400 normal-case font-normal">(Optional)</span>
+            6. Additional Details <span className="text-slate-400 normal-case font-normal">(Optional)</span>
           </label>
           <textarea
             value={additionalDetails}

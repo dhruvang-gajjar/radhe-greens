@@ -5,6 +5,12 @@ import initialMembers from "@/data/members.json";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+interface FamilyContact {
+  name: string;
+  phone: string;
+  relation?: string;
+}
+
 interface MemberRecord {
   id: string;
   block: string;
@@ -15,6 +21,7 @@ interface MemberRecord {
   status: "Occupied" | "Vacant";
   residentType?: string;
   additionalDetails?: string;
+  familyMembers?: FamilyContact[];
   updatedAt?: string;
 }
 
@@ -49,18 +56,32 @@ export async function GET() {
     }
 
     // Format fields for frontend compatibility
-    const formatted: MemberRecord[] = dbMembers.map((m) => ({
-      id: m.id,
-      block: m.block,
-      flatNo: m.flatNo,
-      floor: m.floor,
-      name: m.name || "",
-      phone: m.phone || "",
-      status: m.status === "Occupied" ? "Occupied" : "Vacant",
-      residentType: m.residentType || "",
-      additionalDetails: m.additionalDetails || "",
-      updatedAt: m.updatedAt.toISOString(),
-    }));
+    const formatted: MemberRecord[] = dbMembers.map((m) => {
+      let family: FamilyContact[] = [];
+      if (Array.isArray(m.familyMembers)) {
+        family = m.familyMembers as unknown as FamilyContact[];
+      } else if (typeof m.familyMembers === "string") {
+        try {
+          family = JSON.parse(m.familyMembers);
+        } catch {
+          family = [];
+        }
+      }
+
+      return {
+        id: m.id,
+        block: m.block,
+        flatNo: m.flatNo,
+        floor: m.floor,
+        name: m.name || "",
+        phone: m.phone || "",
+        status: m.status === "Occupied" ? "Occupied" : "Vacant",
+        residentType: m.residentType || "",
+        additionalDetails: m.additionalDetails || "",
+        familyMembers: family,
+        updatedAt: m.updatedAt.toISOString(),
+      };
+    });
 
     return NextResponse.json(formatted, {
       headers: {
@@ -83,7 +104,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { block, flatNo, name, phone, additionalDetails } = body;
+    const { block, flatNo, name, phone, additionalDetails, familyMembers } = body;
 
     const cleanBlock = String(block || "").toUpperCase().trim();
     const cleanFlat = String(flatNo || "").trim();
@@ -103,7 +124,17 @@ export async function POST(req: Request) {
     const cleanName = String(name || "").trim().slice(0, 100);
     const cleanPhone = cleanPhoneNumber(String(phone || ""));
     const cleanDetails = String(additionalDetails || "").trim().slice(0, 500);
-    const isOccupied = Boolean(cleanName || cleanPhone);
+
+    const rawFamily = Array.isArray(familyMembers) ? familyMembers : [];
+    const cleanFamily = rawFamily
+      .map((f: { name?: string; phone?: string; relation?: string }) => ({
+        name: String(f.name || "").trim().slice(0, 100),
+        phone: cleanPhoneNumber(String(f.phone || "")),
+        relation: String(f.relation || "").trim().slice(0, 50),
+      }))
+      .filter((f: { name: string; phone: string }) => Boolean(f.name || f.phone));
+
+    const isOccupied = Boolean(cleanName || cleanPhone || cleanFamily.length > 0);
 
     const record = await prisma.member.upsert({
       where: { id },
@@ -115,6 +146,7 @@ export async function POST(req: Request) {
         phone: cleanPhone,
         status: isOccupied ? "Occupied" : "Vacant",
         additionalDetails: cleanDetails,
+        familyMembers: cleanFamily,
       },
       create: {
         id,
@@ -125,6 +157,7 @@ export async function POST(req: Request) {
         phone: cleanPhone,
         status: isOccupied ? "Occupied" : "Vacant",
         additionalDetails: cleanDetails,
+        familyMembers: cleanFamily,
       },
     });
 

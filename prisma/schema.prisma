@@ -19,6 +19,7 @@ model Member {
   status            String   @default("Vacant") // "Occupied" | "Vacant"
   residentType      String   @default("")
   additionalDetails String   @default("")
+  familyMembers     Json?    @default("[]")
   updatedAt         DateTime @default(now()) @updatedAt
 
   @@index([block])

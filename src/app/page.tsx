@@ -47,7 +47,8 @@ export default function DirectoryPage() {
 
     return members.filter((m) => {
       // Only registered members
-      const isOccupied = Boolean(m.name || m.phone);
+      const hasFamily = Array.isArray(m.familyMembers) && m.familyMembers.length > 0;
+      const isOccupied = Boolean(m.name || m.phone || hasFamily);
       if (!isOccupied) {
         return false;
       }
@@ -65,8 +66,13 @@ export default function DirectoryPage() {
         const matchPhone = (m.phone || "").includes(q);
         const matchFloor = `${m.floor}`.includes(q);
         const matchDetails = (m.additionalDetails || "").toLowerCase().includes(q);
+        const matchFamily = hasFamily && m.familyMembers!.some((f) =>
+          (f.name || "").toLowerCase().includes(q) ||
+          (f.phone || "").includes(q) ||
+          (f.relation || "").toLowerCase().includes(q)
+        );
 
-        if (!matchFlat && !matchId && !matchName && !matchPhone && !matchFloor && !matchDetails) {
+        if (!matchFlat && !matchId && !matchName && !matchPhone && !matchFloor && !matchDetails && !matchFamily) {
           return false;
         }
       }
@@ -207,6 +213,16 @@ export default function DirectoryPage() {
                     <span>{formatPhone(m.phone)}</span>
                     <MessageCircle className="w-3 h-3 text-emerald-600 ml-0.5" />
                   </button>
+                ) : Array.isArray(m.familyMembers) && m.familyMembers.length > 0 ? (
+                  <button
+                    onClick={() => setActiveModalMember(m)}
+                    type="button"
+                    className="inline-flex items-center gap-1 text-teal-700 hover:text-teal-800 bg-teal-50/80 hover:bg-teal-100 px-2 py-1 rounded-lg text-xs font-semibold transition active:scale-95"
+                    title="Click to Call or WhatsApp Family Member"
+                  >
+                    <Phone className="w-3 h-3 text-teal-600" />
+                    <span>Contact Family</span>
+                  </button>
                 ) : (
                   <span className="text-[11px] text-slate-300 italic">No phone</span>
                 )}
@@ -216,7 +232,7 @@ export default function DirectoryPage() {
               <div className="mt-1">
                 {isOccupied ? (
                   <h3 className="font-semibold text-slate-900 text-sm tracking-tight leading-snug">
-                    {m.name}
+                    {m.name || "Resident"}
                   </h3>
                 ) : (
                   <div className="flex items-center justify-between">
@@ -227,6 +243,29 @@ export default function DirectoryPage() {
                     >
                       + Add Name
                     </Link>
+                  </div>
+                )}
+
+                {/* Family Members tags if present */}
+                {Array.isArray(m.familyMembers) && m.familyMembers.length > 0 && (
+                  <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-slate-400 font-medium">Family:</span>
+                    {m.familyMembers.map((f, fIdx) => (
+                      <button
+                        key={fIdx}
+                        type="button"
+                        onClick={() => setActiveModalMember(m)}
+                        className="inline-flex items-center gap-1 text-[11px] bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-teal-800 px-2 py-0.5 rounded-md border border-slate-200 transition font-medium"
+                        title={`Click to contact ${f.name}`}
+                      >
+                        <span>{f.name}</span>
+                        {f.relation && (
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            ({f.relation})
+                          </span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 )}
 
@@ -280,6 +319,7 @@ export default function DirectoryPage() {
           name={activeModalMember.name}
           phone={activeModalMember.phone}
           unit={`Block ${activeModalMember.block} - ${activeModalMember.flatNo}`}
+          familyMembers={activeModalMember.familyMembers}
         />
       )}
     </div>
