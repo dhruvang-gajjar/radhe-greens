@@ -28,9 +28,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const themeColor = societyConfig.theme.themeColor;
+
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-red-100">
+    <html
+      lang="en"
+      style={
+        {
+          "--theme-primary": themeColor,
+        } as React.CSSProperties
+      }
+    >
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-theme-light">
         <div className="max-w-md sm:max-w-xl md:max-w-2xl mx-auto px-4 py-3 sm:py-6">
           {children}
         </div>

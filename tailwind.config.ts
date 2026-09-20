@@ -9,11 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: "#0f766e",
-          hover: "#115e59",
-          light: "#f0fdfa",
-          border: "#ccfbf1",
+        theme: {
+          primary: "var(--theme-primary)",
+          hover: "var(--theme-primary-hover)",
+          light: "var(--theme-primary-light)",
+          "light-hover": "var(--theme-primary-light-hover)",
+          border: "var(--theme-primary-border)",
         },
       },
     },

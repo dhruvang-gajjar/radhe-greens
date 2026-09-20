@@ -239,10 +239,14 @@ export async function POST(req: Request) {
         updatedAt: record.updatedAt.toISOString(),
       },
     });
-  } catch (err) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("POST /api/members error:", err);
     return NextResponse.json(
-      { error: "Failed to save member details" },
+      {
+        error: "Failed to save member details",
+        details: errorMsg,
+      },
       { status: 500 }
     );
   }

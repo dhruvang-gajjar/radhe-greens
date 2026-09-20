@@ -5,6 +5,11 @@
 :root {
   --foreground-rgb: 15, 23, 42;
   --background-rgb: 248, 250, 252;
+  --theme-primary: #dc2626;
+  --theme-primary-hover: color-mix(in srgb, var(--theme-primary) 85%, black);
+  --theme-primary-light: color-mix(in srgb, var(--theme-primary) 8%, white);
+  --theme-primary-light-hover: color-mix(in srgb, var(--theme-primary) 15%, white);
+  --theme-primary-border: color-mix(in srgb, var(--theme-primary) 25%, white);
 }
 
 body {
