@@ -207,7 +207,7 @@ export function PhoneActionModal({
             <Link
               href={`/add?block=${block}&flat=${flatNo}`}
               onClick={onClose}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 hover:text-red-800 hover:underline py-1"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-theme-primary hover:text-theme-hover hover:underline py-1"
             >
               <Pencil className="w-3.5 h-3.5" />
               <span>Edit Flat Details</span>

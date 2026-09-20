@@ -330,7 +330,7 @@ export default function AddPage() {
                 onClick={() => setSelectedBlock(b.id)}
                 className={`py-2 px-3.5 text-center rounded-xl border text-sm font-bold transition ${
                   selectedBlock === b.id
-                    ? "bg-red-700 text-white border-red-700 shadow-xs"
+                    ? "bg-theme-primary text-white border-theme-primary shadow-xs"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                 }`}
               >
@@ -348,7 +348,7 @@ export default function AddPage() {
           <select
             value={selectedFlat}
             onChange={(e) => setSelectedFlat(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs"
           >
             {blockFlats.map((m) => {
               const occupied = Boolean(m.name || m.phone);
@@ -362,7 +362,7 @@ export default function AddPage() {
           </select>
           <p className="text-[11px] text-slate-400 mt-1">
             {isCurrentlyOccupied ? (
-              <span className={isEditingBlocked ? "text-amber-700 font-semibold" : "text-red-700 font-semibold"}>
+              <span className={isEditingBlocked ? "text-amber-700 font-semibold" : "text-theme-primary font-semibold"}>
                 ● Currently registered to {currentResident?.name || "Resident"} ({currentResident?.residentType || "Owner"}).{" "}
                 {isEditingBlocked ? "Editing is disabled for this society." : "You can update details below."}
               </span>
@@ -470,7 +470,7 @@ export default function AddPage() {
             placeholder="e.g. Ramesh Patel"
             required
             disabled={isEditingBlocked}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
           />
         </div>
 
@@ -491,7 +491,7 @@ export default function AddPage() {
               placeholder="98765 43210"
               maxLength={10}
               disabled={isEditingBlocked}
-              className="w-full bg-white border border-slate-200 rounded-r-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+              className="w-full bg-white border border-slate-200 rounded-r-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
             />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">10-digit number for calling and WhatsApp</p>
@@ -501,7 +501,7 @@ export default function AddPage() {
         <div className="space-y-2.5 pt-2 border-t border-slate-100">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-red-700" />
+              <Users className="w-3.5 h-3.5 text-theme-primary" />
               <span>6. Family Members</span>
               <span className="text-slate-400 normal-case font-normal">(Optional)</span>
             </label>
@@ -510,7 +510,7 @@ export default function AddPage() {
                 type="button"
                 onClick={handleAddFamilyMember}
                 disabled={familyMembers.length >= societyConfig.limits.maxFamilyMembersPerFlat}
-                className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1 rounded-lg transition"
+                className="inline-flex items-center gap-1 text-xs font-bold text-theme-primary hover:text-theme-hover bg-theme-light hover:bg-theme-light-hover disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1 rounded-lg transition"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Member</span>
@@ -525,7 +525,7 @@ export default function AddPage() {
                 <button
                   type="button"
                   onClick={handleAddFamilyMember}
-                  className="mt-1 text-xs font-semibold text-red-700 hover:underline inline-flex items-center gap-1"
+                  className="mt-1 text-xs font-semibold text-theme-primary hover:underline inline-flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Add spouse, child, or parent contact</span>
@@ -569,7 +569,7 @@ export default function AddPage() {
                           handleUpdateFamilyMember(idx, "name", e.target.value)
                         }
                         placeholder="e.g. Geetaben Patel"
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
                       />
                     </div>
 
@@ -584,7 +584,7 @@ export default function AddPage() {
                         onChange={(e) =>
                           handleUpdateFamilyMember(idx, "relation", e.target.value)
                         }
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
                       >
                         {["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map(
                           (r) => (
@@ -616,7 +616,7 @@ export default function AddPage() {
                         }
                         placeholder="98765 43210"
                         maxLength={10}
-                        className="w-full bg-white border border-slate-200 rounded-r-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+                        className="w-full bg-white border border-slate-200 rounded-r-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
                       />
                     </div>
                   </div>
@@ -630,7 +630,7 @@ export default function AddPage() {
         <div className="space-y-2.5 pt-2 border-t border-slate-100">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-              <Car className="w-3.5 h-3.5 text-red-700" />
+              <Car className="w-3.5 h-3.5 text-theme-primary" />
               <span>7. Vehicles</span>
               <span className="text-slate-400 normal-case font-normal">
                 (Max {societyConfig.limits.maxVehiclesPerFlat})
@@ -641,7 +641,7 @@ export default function AddPage() {
                 type="button"
                 onClick={handleAddVehicle}
                 disabled={vehicles.length >= societyConfig.limits.maxVehiclesPerFlat}
-                className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1 rounded-lg transition"
+                className="inline-flex items-center gap-1 text-xs font-bold text-theme-primary hover:text-theme-hover bg-theme-light hover:bg-theme-light-hover disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1 rounded-lg transition"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>
@@ -660,7 +660,7 @@ export default function AddPage() {
                 <button
                   type="button"
                   onClick={handleAddVehicle}
-                  className="mt-1 text-xs font-semibold text-red-700 hover:underline inline-flex items-center gap-1"
+                  className="mt-1 text-xs font-semibold text-theme-primary hover:underline inline-flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Register a Car, 2-Wheeler, or Other vehicle</span>
@@ -704,7 +704,7 @@ export default function AddPage() {
                           handleUpdateVehicle(idx, "regNo", e.target.value)
                         }
                         placeholder="e.g. GJ-01-AB-1234"
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 uppercase font-mono placeholder:text-slate-400 placeholder:normal-case focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 uppercase font-mono placeholder:text-slate-400 placeholder:normal-case focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
                       />
                     </div>
 
@@ -719,7 +719,7 @@ export default function AddPage() {
                         onChange={(e) =>
                           handleUpdateVehicle(idx, "type", e.target.value)
                         }
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
                       >
                         <option value="Car">🚗 Car / 4-Wheeler</option>
                         <option value="Bike">🛵 Two-Wheeler / Bike</option>
@@ -744,7 +744,7 @@ export default function AddPage() {
             onChange={(e) => setAdditionalDetails(e.target.value)}
             placeholder="e.g. Alternate contact, intercom, or notes..."
             rows={2}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary shadow-xs disabled:bg-slate-100 disabled:text-slate-500"
           />
         </div>
 
@@ -753,7 +753,7 @@ export default function AddPage() {
           <button
             type="submit"
             disabled={isSaving || success || isEditingBlocked}
-            className="w-full py-3 px-4 bg-red-700 hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition shadow-sm active:scale-98"
+            className="w-full py-3 px-4 bg-theme-primary hover:bg-theme-hover disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition shadow-sm active:scale-98"
           >
             {success
               ? "Saved!"
