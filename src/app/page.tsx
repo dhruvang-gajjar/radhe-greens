@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Search, X, Phone, MessageCircle } from "lucide-react";
+import { Search, X, Phone, MessageCircle, Pencil } from "lucide-react";
 import { getMembers, defaultMembers, fetchLiveMembers, subscribeMembers, Member } from "@/lib/storage";
 import { PhoneActionModal } from "@/components/PhoneActionModal";
 
@@ -238,17 +238,28 @@ export default function DirectoryPage() {
               {/* Resident Name */}
               <div className="mt-1">
                 {isOccupied ? (
-                  <h3 className="font-semibold text-slate-900 text-sm tracking-tight leading-snug">
-                    {m.name || "Resident"}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-semibold text-slate-900 text-sm tracking-tight leading-snug">
+                      {m.name || "Resident"}
+                    </h3>
+                    <Link
+                      href={`/add?block=${m.block}&flat=${m.flatNo}`}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-700 bg-slate-50 hover:bg-red-50 hover:border-red-200 px-2 py-0.5 rounded-md border border-slate-200 transition shrink-0 active:scale-95"
+                      title={`Edit details for Block ${m.block} • Flat ${m.flatNo}`}
+                    >
+                      <Pencil className="w-3 h-3 text-slate-400" />
+                      <span>Edit</span>
+                    </Link>
+                  </div>
                 ) : (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-400 italic">Vacant</span>
                     <Link
                       href={`/add?block=${m.block}&flat=${m.flatNo}`}
-                      className="text-[11px] text-red-700 font-semibold hover:underline"
+                      className="text-[11px] text-red-700 font-semibold hover:underline inline-flex items-center gap-1"
                     >
-                      + Add Name
+                      <Pencil className="w-3 h-3" />
+                      <span>+ Add Name</span>
                     </Link>
                   </div>
                 )}
@@ -326,6 +337,8 @@ export default function DirectoryPage() {
           name={activeModalMember.name}
           phone={activeModalMember.phone}
           unit={`Block ${activeModalMember.block} - ${activeModalMember.flatNo}`}
+          block={activeModalMember.block}
+          flatNo={activeModalMember.flatNo}
           familyMembers={activeModalMember.familyMembers}
         />
       )}

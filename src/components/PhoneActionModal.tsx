@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Phone, MessageCircle, Copy, X } from "lucide-react";
+import Link from "next/link";
+import { Phone, MessageCircle, Copy, X, Pencil } from "lucide-react";
 
 interface FamilyContact {
   name: string;
@@ -15,6 +16,8 @@ interface PhoneActionModalProps {
   name: string;
   phone: string;
   unit: string;
+  block?: string;
+  flatNo?: string;
   familyMembers?: FamilyContact[];
 }
 
@@ -24,6 +27,8 @@ export function PhoneActionModal({
   name,
   phone,
   unit,
+  block,
+  flatNo,
   familyMembers = [],
 }: PhoneActionModalProps) {
   if (!isOpen) return null;
@@ -160,13 +165,27 @@ export function PhoneActionModal({
           })}
         </div>
 
-        <button
-          onClick={onClose}
-          type="button"
-          className="w-full py-2 text-center text-xs font-semibold text-gray-500 hover:text-gray-800 transition pt-1"
-        >
-          Close
-        </button>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          {block && flatNo ? (
+            <Link
+              href={`/add?block=${block}&flat=${flatNo}`}
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 hover:text-red-800 hover:underline py-1"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>Edit Flat Details</span>
+            </Link>
+          ) : (
+            <div />
+          )}
+          <button
+            onClick={onClose}
+            type="button"
+            className="py-1 px-3 text-xs font-semibold text-gray-500 hover:text-gray-800 transition rounded-lg hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
