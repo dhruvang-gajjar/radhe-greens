@@ -1,4 +1,5 @@
 import initialMembers from "@/data/members.json";
+import { societyConfig, generateAllSocietyFlats, parseFloorFromFlat } from "@/config/society";
 
 export interface FamilyMember {
   name: string;
@@ -19,17 +20,73 @@ export interface Member {
   name: string;
   phone: string;
   status: "Occupied" | "Vacant";
-  residentType?: string;
+  residentType?: "Owner" | "Tenant" | string;
+  ownerName?: string;
+  ownerPhone?: string;
   additionalDetails?: string;
   familyMembers?: FamilyMember[];
   vehicles?: Vehicle[];
   updatedAt?: string;
 }
 
-export const defaultMembers = initialMembers as Member[];
+// Helper to sanitize phone numbers
+export function cleanPhoneNumber(raw: string): string {
+  if (!raw) return "";
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return digits.slice(2);
+  }
+  if (digits.length === 11 && digits.startsWith("0")) {
+    return digits.slice(1);
+  }
+  return digits.slice(-10);
+}
 
-const STORAGE_KEY = "ganesh_heritage_members_v2";
-const UPDATE_EVENT = "gh_members_updated";
+function buildDefaultMembers(): Member[] {
+  const generated = generateAllSocietyFlats();
+  const initialMap = new Map<string, any>();
+  if (Array.isArray(initialMembers)) {
+    initialMembers.forEach((m: any) => {
+      if (m && m.id) initialMap.set(String(m.id).toUpperCase(), m);
+    });
+  }
+
+  return generated.map((gf) => {
+    const existing = initialMap.get(gf.id.toUpperCase());
+    if (existing) {
+      return {
+        ...existing,
+        id: gf.id,
+        block: gf.block,
+        flatNo: gf.flatNo,
+        floor: gf.floor,
+        residentType: existing.residentType || "Owner",
+        ownerName: existing.ownerName || "",
+        ownerPhone: existing.ownerPhone || "",
+      };
+    }
+    return {
+      id: gf.id,
+      block: gf.block,
+      flatNo: gf.flatNo,
+      floor: gf.floor,
+      name: "",
+      phone: "",
+      status: "Vacant",
+      residentType: "Owner",
+      ownerName: "",
+      ownerPhone: "",
+      additionalDetails: "",
+      familyMembers: [],
+      vehicles: [],
+    };
+  });
+}
+
+export const defaultMembers: Member[] = buildDefaultMembers();
+
+const STORAGE_KEY = societyConfig.storage.localStorageKey;
+const UPDATE_EVENT = societyConfig.storage.updateEvent;
 
 // In-memory cache shared across the client application session
 let memoryMembers: Member[] | null = null;
@@ -42,14 +99,18 @@ export function subscribeMembers(cb: (members: Member[]) => void): () => void {
   };
 }
 
-// Guarantee all 224 flats exist and are never lost
+// Guarantee all flats for society exist and are never lost
 function mergeWithBaseline(records: Member[]): Member[] {
   const map = new Map<string, Member>();
   defaultMembers.forEach((m) => map.set(m.id, m));
   if (Array.isArray(records)) {
     records.forEach((m) => {
-      if (m && m.id && map.has(m.id)) {
-        map.set(m.id, { ...map.get(m.id)!, ...m });
+      if (m && m.id) {
+        if (map.has(m.id)) {
+          map.set(m.id, { ...map.get(m.id)!, ...m });
+        } else {
+          map.set(m.id, m);
+        }
       }
     });
   }
@@ -103,49 +164,44 @@ export function getMembers(): Member[] {
   return memoryMembers;
 }
 
-// Normalize phone digits
-export function cleanPhoneNumber(raw: string): string {
-  if (!raw) return "";
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
-  return digits.slice(-10);
-}
-
-// Fetch live data from cloud once on load without continuous polling
+// Fetch live member data from cloud database with automatic fallback
 export async function fetchLiveMembers(): Promise<Member[]> {
   try {
-    const res = await fetch(`/api/members?_t=${Date.now()}`, {
+    const res = await fetch("/api/members", {
       cache: "no-store",
+      headers: { Pragma: "no-cache" },
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const merged = mergeWithBaseline(data);
-        broadcastUpdate(merged);
-        return merged;
-      }
+    if (!res.ok) {
+      return getMembers();
     }
-  } catch (error) {
-    console.warn("Cloud fetch skipped, using resilient local data:", error);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      broadcastUpdate(data);
+      return memoryMembers || data;
+    }
+  } catch (err) {
+    console.warn("Live cloud sync failed, using cached baseline:", err);
   }
   return getMembers();
 }
 
-// Update local member immediately and sync to cloud in background
-export async function saveMemberCloud(data: {
+// Synchronous local update + asynchronous cloud persistence
+export function saveMemberCloud(data: {
   block: string;
   flatNo: string;
   name: string;
   phone?: string;
+  residentType?: string;
+  ownerName?: string;
+  ownerPhone?: string;
   additionalDetails?: string;
   familyMembers?: FamilyMember[];
   vehicles?: Vehicle[];
-}): Promise<Member> {
-  // 1. Immediately update local data so all pages see the new value instantly
+}): Member {
+  // 1. Instant local persistence for zero perceived latency
   const localRecord = saveMember(data);
 
-  // 2. Background sync to database API (does not block local UI)
+  // 2. Non-blocking cloud persistence
   fetch("/api/members", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -176,6 +232,9 @@ export function saveMember(data: {
   flatNo: string;
   name: string;
   phone?: string;
+  residentType?: string;
+  ownerName?: string;
+  ownerPhone?: string;
   additionalDetails?: string;
   familyMembers?: FamilyMember[];
   vehicles?: Vehicle[];
@@ -184,9 +243,13 @@ export function saveMember(data: {
   const block = String(data.block || "").toUpperCase().trim();
   const flatNo = String(data.flatNo || "").trim();
   const id = `${block}-${flatNo}`;
-  const floor = parseInt(flatNo.length > 2 ? cleanSlice(flatNo) : flatNo[0], 10) || 1;
+  const floor = parseFloorFromFlat(flatNo);
   const name = String(data.name || "").trim().slice(0, 100);
   const phone = cleanPhoneNumber(String(data.phone || ""));
+  const residentType = (data.residentType === "Tenant" ? "Tenant" : "Owner") as "Owner" | "Tenant";
+  const ownerName = residentType === "Tenant" ? String(data.ownerName || "").trim().slice(0, 100) : "";
+  const ownerPhone = residentType === "Tenant" ? cleanPhoneNumber(String(data.ownerPhone || "")) : "";
+
   const sanitizedFamily = Array.isArray(data.familyMembers)
     ? data.familyMembers
         .map((f) => ({
@@ -199,7 +262,7 @@ export function saveMember(data: {
 
   const sanitizedVehicles = Array.isArray(data.vehicles)
     ? data.vehicles
-        .slice(0, 4)
+        .slice(0, societyConfig.limits.maxVehiclesPerFlat)
         .map((v) => ({
           regNo: String(v.regNo || "").toUpperCase().trim().slice(0, 20),
           type: v.type || "Car",
@@ -219,6 +282,9 @@ export function saveMember(data: {
     name,
     phone,
     status: isOccupied ? "Occupied" : "Vacant",
+    residentType,
+    ownerName,
+    ownerPhone,
     additionalDetails: String(data.additionalDetails || "").trim().slice(0, 500),
     familyMembers: sanitizedFamily,
     vehicles: sanitizedVehicles,
@@ -238,10 +304,6 @@ export function saveMember(data: {
   return record;
 }
 
-function cleanSlice(val: string): string {
-  return val.length > 2 ? val.slice(0, -2) : val[0];
-}
-
 export function exportDirectoryCSV(members: Member[]): void {
   const headers = [
     "Block",
@@ -249,6 +311,9 @@ export function exportDirectoryCSV(members: Member[]): void {
     "Floor",
     "Resident Name",
     "Mobile Number",
+    "Resident Type",
+    "Owner Name",
+    "Owner Phone",
     "Vehicles",
     "Status",
     "Additional Details",
@@ -264,6 +329,9 @@ export function exportDirectoryCSV(members: Member[]): void {
       `"${m.floor}"`,
       `"${(m.name || "").replace(/"/g, '""')}"`,
       `"${m.phone || ""}"`,
+      `"${m.residentType || "Owner"}"`,
+      `"${(m.ownerName || "").replace(/"/g, '""')}"`,
+      `"${m.ownerPhone || ""}"`,
       `"${vehiclesStr.replace(/"/g, '""')}"`,
       `"${m.status}"`,
       `"${(m.additionalDetails || "").replace(/"/g, '""')}"`,
@@ -278,7 +346,7 @@ export function exportDirectoryCSV(members: Member[]): void {
   link.setAttribute("href", encodedUri);
   link.setAttribute(
     "download",
-    `Ganesh_Heritage_Members_${new Date().toISOString().slice(0, 10)}.csv`
+    `${societyConfig.storage.backupPrefix}_${new Date().toISOString().slice(0, 10)}.csv`
   );
   document.body.appendChild(link);
   link.click();

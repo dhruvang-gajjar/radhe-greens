@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Search, X, Phone, MessageCircle, Pencil } from "lucide-react";
+import { Search, X, Phone, MessageCircle, Pencil, Building, Home } from "lucide-react";
 import { getMembers, defaultMembers, fetchLiveMembers, subscribeMembers, Member } from "@/lib/storage";
 import { PhoneActionModal } from "@/components/PhoneActionModal";
+import { societyConfig, getBlockBadge, getBlockName } from "@/config/society";
 
 export default function DirectoryPage() {
   const [members, setMembers] = useState<Member[]>(defaultMembers);
@@ -25,7 +26,7 @@ export default function DirectoryPage() {
     const handleSync = () => {
       setMembers([...getMembers()]);
     };
-    window.addEventListener("gh_members_updated", handleSync);
+    window.addEventListener(societyConfig.storage.updateEvent, handleSync);
     window.addEventListener("storage", handleSync);
 
     // 4. Single cloud sync on first load to fetch latest records
@@ -37,7 +38,7 @@ export default function DirectoryPage() {
 
     return () => {
       unsubscribe();
-      window.removeEventListener("gh_members_updated", handleSync);
+      window.removeEventListener(societyConfig.storage.updateEvent, handleSync);
       window.removeEventListener("storage", handleSync);
     };
   }, []);
@@ -78,8 +79,12 @@ export default function DirectoryPage() {
           const regNormalized = reg.replace(/[\s-]/g, "");
           return reg.includes(q) || (cleanQ.length > 0 && regNormalized.includes(cleanQ));
         });
+        const matchOwner = m.residentType === "Tenant" && (
+          (m.ownerName || "").toLowerCase().includes(q) ||
+          (m.ownerPhone || "").includes(q)
+        );
 
-        if (!matchFlat && !matchId && !matchName && !matchPhone && !matchFloor && !matchDetails && !matchFamily && !matchVehicle) {
+        if (!matchFlat && !matchId && !matchName && !matchPhone && !matchFloor && !matchDetails && !matchFamily && !matchVehicle && !matchOwner) {
           return false;
         }
       }
@@ -105,30 +110,15 @@ export default function DirectoryPage() {
     return "th";
   };
 
-  const getBlockBadge = (block: string) => {
-    switch (block) {
-      case "A":
-        return "bg-rose-50 text-rose-700 border-rose-100";
-      case "B":
-        return "bg-sky-50 text-sky-700 border-sky-100";
-      case "C":
-        return "bg-amber-50 text-amber-700 border-amber-100";
-      case "D":
-        return "bg-purple-50 text-purple-700 border-purple-100";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-100";
-    }
-  };
-
   return (
     <div className="space-y-3.5 pb-20">
       {/* Header */}
       <header className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
-            <span>🏢</span> Ganesh Heritage
+            <span>🏢</span> {societyConfig.name}
           </h1>
-          <p className="text-xs text-slate-500 font-medium">Resident Directory</p>
+          <p className="text-xs text-slate-500 font-medium">{societyConfig.tagline}</p>
         </div>
         <Link
           href="/add"
@@ -145,7 +135,7 @@ export default function DirectoryPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search flat no, resident name, phone, vehicle..."
+          placeholder="Search flat no, resident name, phone, vehicle, owner..."
           className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-9 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition shadow-sm"
         />
         {search && (
@@ -161,7 +151,7 @@ export default function DirectoryPage() {
 
       {/* Block Filter Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-        {["ALL", "A", "B", "C", "D"].map((b) => (
+        {["ALL", ...societyConfig.blocks.map((b) => b.id)].map((b) => (
           <button
             key={b}
             onClick={() => setSelectedBlock(b)}
@@ -171,7 +161,7 @@ export default function DirectoryPage() {
                 : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            {b === "ALL" ? "All Blocks" : `Block ${b}`}
+            {b === "ALL" ? "All Blocks" : getBlockName(b)}
           </button>
         ))}
       </div>
@@ -186,6 +176,7 @@ export default function DirectoryPage() {
         {filteredMembers.map((m) => {
           const isOccupied = Boolean(m.name || m.phone);
           const blockBadge = getBlockBadge(m.block);
+          const isTenant = m.residentType === "Tenant";
 
           return (
             <div
@@ -195,8 +186,8 @@ export default function DirectoryPage() {
               }`}
             >
               <div className="flex items-start justify-between gap-2 mb-1.5">
-                {/* Flat & Floor */}
-                <div className="flex items-center gap-1.5">
+                {/* Flat, Floor, and Resident Type Badges */}
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span
                     className={`text-xs font-bold px-2 py-0.5 rounded-md border ${blockBadge}`}
                   >
@@ -206,6 +197,17 @@ export default function DirectoryPage() {
                     {m.floor}
                     {getOrdinalSuffix(m.floor)} Floor
                   </span>
+                  {isTenant ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                      <Building className="w-2.5 h-2.5" />
+                      <span>Tenant</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-200">
+                      <Home className="w-2.5 h-2.5" />
+                      <span>Owner</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* Clickable Phone if present */}
@@ -213,7 +215,7 @@ export default function DirectoryPage() {
                   <button
                     onClick={() => setActiveModalMember(m)}
                     type="button"
-                    className="inline-flex items-center gap-1 text-teal-700 hover:text-teal-800 bg-teal-50/80 hover:bg-teal-100 px-2 py-1 rounded-lg text-xs font-semibold transition active:scale-95"
+                    className="inline-flex items-center gap-1 text-teal-700 hover:text-teal-800 bg-teal-50/80 hover:bg-teal-100 px-2 py-1 rounded-lg text-xs font-semibold transition active:scale-95 shrink-0"
                     title="Click to Call or WhatsApp"
                   >
                     <Phone className="w-3 h-3 text-teal-600" />
@@ -224,7 +226,7 @@ export default function DirectoryPage() {
                   <button
                     onClick={() => setActiveModalMember(m)}
                     type="button"
-                    className="inline-flex items-center gap-1 text-teal-700 hover:text-teal-800 bg-teal-50/80 hover:bg-teal-100 px-2 py-1 rounded-lg text-xs font-semibold transition active:scale-95"
+                    className="inline-flex items-center gap-1 text-teal-700 hover:text-teal-800 bg-teal-50/80 hover:bg-teal-100 px-2 py-1 rounded-lg text-xs font-semibold transition active:scale-95 shrink-0"
                     title="Click to Call or WhatsApp Family Member"
                   >
                     <Phone className="w-3 h-3 text-teal-600" />
@@ -242,14 +244,16 @@ export default function DirectoryPage() {
                     <h3 className="font-semibold text-slate-900 text-sm tracking-tight leading-snug">
                       {m.name || "Resident"}
                     </h3>
-                    <Link
-                      href={`/add?block=${m.block}&flat=${m.flatNo}`}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-700 bg-slate-50 hover:bg-red-50 hover:border-red-200 px-2 py-0.5 rounded-md border border-slate-200 transition shrink-0 active:scale-95"
-                      title={`Edit details for Block ${m.block} • Flat ${m.flatNo}`}
-                    >
-                      <Pencil className="w-3 h-3 text-slate-400" />
-                      <span>Edit</span>
-                    </Link>
+                    {societyConfig.allowEdit && (
+                      <Link
+                        href={`/add?block=${m.block}&flat=${m.flatNo}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-700 bg-slate-50 hover:bg-red-50 hover:border-red-200 px-2 py-0.5 rounded-md border border-slate-200 transition shrink-0 active:scale-95"
+                        title={`Edit details for Block ${m.block} • Flat ${m.flatNo}`}
+                      >
+                        <Pencil className="w-3 h-3 text-slate-400" />
+                        <span>Edit</span>
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
@@ -261,6 +265,29 @@ export default function DirectoryPage() {
                       <Pencil className="w-3 h-3" />
                       <span>+ Add Name</span>
                     </Link>
+                  </div>
+                )}
+
+                {/* Owner Information (Shown when flat is Tenant-occupied) */}
+                {isTenant && (m.ownerName || m.ownerPhone) && (
+                  <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-xs bg-amber-50/50 -mx-1 px-2 py-1 rounded-lg border border-amber-100/60">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[11px] font-bold text-amber-900 shrink-0">Owner:</span>
+                      <span className="text-[11px] font-medium text-slate-800 truncate">
+                        {m.ownerName || "Flat Owner"}
+                      </span>
+                    </div>
+                    {m.ownerPhone && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveModalMember(m)}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-900 hover:text-amber-950 shrink-0"
+                        title="Contact Owner"
+                      >
+                        <Phone className="w-2.5 h-2.5 text-amber-700" />
+                        <span>{formatPhone(m.ownerPhone)}</span>
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -324,9 +351,9 @@ export default function DirectoryPage() {
 
       {/* Clean Directory Footer */}
       <footer className="pt-6 pb-2 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-        <span>Ganesh Heritage</span>
+        <span>{societyConfig.name}</span>
         <span>•</span>
-        <span>Resident Directory</span>
+        <span>{societyConfig.societyType}</span>
       </footer>
 
       {/* Action Modal for Phone */}
@@ -339,6 +366,9 @@ export default function DirectoryPage() {
           unit={`Block ${activeModalMember.block} - ${activeModalMember.flatNo}`}
           block={activeModalMember.block}
           flatNo={activeModalMember.flatNo}
+          residentType={activeModalMember.residentType}
+          ownerName={activeModalMember.ownerName}
+          ownerPhone={activeModalMember.ownerPhone}
           familyMembers={activeModalMember.familyMembers}
         />
       )}

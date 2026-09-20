@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { societyConfig } from "@/config/society";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
     });
 
     if (format === "csv") {
-      const headers = ["id", "block", "flatNo", "floor", "name", "phone", "familyMembers", "vehicles", "status", "residentType", "additionalDetails", "updatedAt"];
+      const headers = ["id", "block", "flatNo", "floor", "name", "phone", "residentType", "ownerName", "ownerPhone", "familyMembers", "vehicles", "status", "additionalDetails", "updatedAt"];
       const rows = members.map((m) => {
         let familyStr = "";
         if (Array.isArray(m.familyMembers)) {
@@ -36,10 +37,12 @@ export async function GET(req: Request) {
           m.floor,
           `"${(m.name || "").replace(/"/g, '""')}"`,
           `"${m.phone || ""}"`,
+          `"${(m.residentType || "Owner").replace(/"/g, '""')}"`,
+          `"${(m.ownerName || "").replace(/"/g, '""')}"`,
+          `"${m.ownerPhone || ""}"`,
           `"${familyStr.replace(/"/g, '""')}"`,
           `"${vehiclesStr.replace(/"/g, '""')}"`,
           m.status,
-          `"${(m.residentType || "").replace(/"/g, '""')}"`,
           `"${(m.additionalDetails || "").replace(/"/g, '""')}"`,
           m.updatedAt.toISOString(),
         ].join(",");
@@ -50,7 +53,7 @@ export async function GET(req: Request) {
       return new Response(csvContent, {
         headers: {
           "Content-Type": "text/csv",
-          "Content-Disposition": `attachment; filename="ganesh_heritage_backup_${new Date().toISOString().slice(0, 10)}.csv"`,
+          "Content-Disposition": `attachment; filename="${societyConfig.storage.backupPrefix}_${new Date().toISOString().slice(0, 10)}.csv"`,
         },
       });
     }
@@ -58,7 +61,7 @@ export async function GET(req: Request) {
     return new Response(JSON.stringify(members, null, 2), {
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="ganesh_heritage_backup_${new Date().toISOString().slice(0, 10)}.json"`,
+        "Content-Disposition": `attachment; filename="${societyConfig.storage.backupPrefix}_${new Date().toISOString().slice(0, 10)}.json"`,
       },
     });
   } catch (error) {

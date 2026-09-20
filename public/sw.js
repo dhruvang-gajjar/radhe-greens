@@ -2,8 +2,10 @@ const CACHE_NAME = 'ganesh-heritage-cache-v1';
 const PRECACHE_ASSETS = [
   '/',
   '/manifest.json',
+  '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/icon-maskable-512.png',
   '/icons/apple-touch-icon.png'
 ];
 

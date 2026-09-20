@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import initialMembers from "@/data/members.json";
+import { defaultMembers } from "@/lib/storage";
+import { societyConfig, isValidBlock, parseFloorFromFlat } from "@/config/society";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,14 +25,14 @@ interface MemberRecord {
   name: string;
   phone: string;
   status: "Occupied" | "Vacant";
-  residentType?: string;
-  additionalDetails?: string;
-  familyMembers?: FamilyContact[];
-  vehicles?: VehicleRecord[];
-  updatedAt?: string;
+  residentType: string;
+  ownerName: string;
+  ownerPhone: string;
+  additionalDetails: string;
+  familyMembers: FamilyContact[];
+  vehicles: VehicleRecord[];
+  updatedAt: string;
 }
-
-const VALID_BLOCKS = new Set(["A", "B", "C", "D"]);
 
 // Helper to sanitize and normalize phone numbers
 function cleanPhoneNumber(raw: string): string {
@@ -54,7 +55,7 @@ export async function GET() {
 
     if (!dbMembers || dbMembers.length === 0) {
       // Return baseline if database is empty/not yet seeded
-      return NextResponse.json(initialMembers, {
+      return NextResponse.json(defaultMembers, {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         },
@@ -93,7 +94,9 @@ export async function GET() {
         name: m.name || "",
         phone: m.phone || "",
         status: m.status === "Occupied" ? "Occupied" : "Vacant",
-        residentType: m.residentType || "",
+        residentType: m.residentType || "Owner",
+        ownerName: m.ownerName || "",
+        ownerPhone: m.ownerPhone || "",
         additionalDetails: m.additionalDetails || "",
         familyMembers: family,
         vehicles,
@@ -111,7 +114,7 @@ export async function GET() {
   } catch (err) {
     console.error("GET /api/members error:", err);
     // Graceful fallback to baseline data - NEVER break or return 500
-    return NextResponse.json(initialMembers, {
+    return NextResponse.json(defaultMembers, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       },
@@ -122,12 +125,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { block, flatNo, name, phone, additionalDetails, familyMembers, vehicles } = body;
+    const { block, flatNo, name, phone, residentType, ownerName, ownerPhone, additionalDetails, familyMembers, vehicles } = body;
 
     const cleanBlock = String(block || "").toUpperCase().trim();
     const cleanFlat = String(flatNo || "").trim();
 
-    if (!VALID_BLOCKS.has(cleanBlock) || !cleanFlat) {
+    if (!isValidBlock(cleanBlock) || !cleanFlat) {
       return NextResponse.json(
         { error: "Invalid Block or Flat number" },
         { status: 400 }
@@ -135,16 +138,40 @@ export async function POST(req: Request) {
     }
 
     const id = `${cleanBlock}-${cleanFlat}`;
-    const floor =
-      parseInt(cleanFlat.length > 2 ? cleanFlat.slice(0, -2) : cleanFlat[0], 10) || 1;
+    const floor = parseFloorFromFlat(cleanFlat);
+
+    // If editing is disabled for this society, do not allow overwriting an occupied flat
+    if (!societyConfig.allowEdit) {
+      const existing = await prisma.member.findUnique({ where: { id } });
+      const isAlreadyOccupied =
+        existing &&
+        (existing.status === "Occupied" ||
+          Boolean(
+            existing.name ||
+              existing.phone ||
+              (Array.isArray(existing.familyMembers) && (existing.familyMembers as unknown[]).length > 0) ||
+              (Array.isArray(existing.vehicles) && (existing.vehicles as unknown[]).length > 0)
+          ));
+
+      if (isAlreadyOccupied) {
+        return NextResponse.json(
+          { error: "Editing existing flat records is disabled for this society" },
+          { status: 403 }
+        );
+      }
+    }
 
     // Sanitize fields and impose reasonable character limits
     const cleanName = String(name || "").trim().slice(0, 100);
     const cleanPhone = cleanPhoneNumber(String(phone || ""));
     const cleanDetails = String(additionalDetails || "").trim().slice(0, 500);
+    const cleanResidentType = residentType === "Tenant" ? "Tenant" : "Owner";
+    const cleanOwnerName = cleanResidentType === "Tenant" ? String(ownerName || "").trim().slice(0, 100) : "";
+    const cleanOwnerPhone = cleanResidentType === "Tenant" ? cleanPhoneNumber(String(ownerPhone || "")) : "";
 
     const rawFamily = Array.isArray(familyMembers) ? familyMembers : [];
     const cleanFamily = rawFamily
+      .slice(0, societyConfig.limits.maxFamilyMembersPerFlat)
       .map((f: { name?: string; phone?: string; relation?: string }) => ({
         name: String(f.name || "").trim().slice(0, 100),
         phone: cleanPhoneNumber(String(f.phone || "")),
@@ -154,7 +181,7 @@ export async function POST(req: Request) {
 
     const rawVehicles = Array.isArray(vehicles) ? vehicles : [];
     const cleanVehicles = rawVehicles
-      .slice(0, 4)
+      .slice(0, societyConfig.limits.maxVehiclesPerFlat)
       .map((v: { regNo?: string; type?: string }) => ({
         regNo: String(v.regNo || "").toUpperCase().trim().slice(0, 20),
         type: (["Car", "Bike", "Other"].includes(String(v.type)) ? v.type : "Car") as "Car" | "Bike" | "Other",
@@ -172,6 +199,9 @@ export async function POST(req: Request) {
         name: cleanName,
         phone: cleanPhone,
         status: isOccupied ? "Occupied" : "Vacant",
+        residentType: cleanResidentType,
+        ownerName: cleanOwnerName,
+        ownerPhone: cleanOwnerPhone,
         additionalDetails: cleanDetails,
         familyMembers: cleanFamily,
         vehicles: cleanVehicles,
@@ -184,6 +214,9 @@ export async function POST(req: Request) {
         name: cleanName,
         phone: cleanPhone,
         status: isOccupied ? "Occupied" : "Vacant",
+        residentType: cleanResidentType,
+        ownerName: cleanOwnerName,
+        ownerPhone: cleanOwnerPhone,
         additionalDetails: cleanDetails,
         familyMembers: cleanFamily,
         vehicles: cleanVehicles,
@@ -197,10 +230,10 @@ export async function POST(req: Request) {
         updatedAt: record.updatedAt.toISOString(),
       },
     });
-  } catch (error) {
-    console.error("Error saving member to Prisma:", error);
+  } catch (err) {
+    console.error("POST /api/members error:", err);
     return NextResponse.json(
-      { error: "Failed to process request" },
+      { error: "Failed to save member details" },
       { status: 500 }
     );
   }

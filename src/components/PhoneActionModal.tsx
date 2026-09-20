@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Phone, MessageCircle, Copy, X, Pencil } from "lucide-react";
+import { societyConfig } from "@/config/society";
 
 interface FamilyContact {
   name: string;
@@ -18,6 +19,9 @@ interface PhoneActionModalProps {
   unit: string;
   block?: string;
   flatNo?: string;
+  residentType?: string;
+  ownerName?: string;
+  ownerPhone?: string;
   familyMembers?: FamilyContact[];
 }
 
@@ -29,12 +33,14 @@ export function PhoneActionModal({
   unit,
   block,
   flatNo,
+  residentType,
+  ownerName,
+  ownerPhone,
   familyMembers = [],
 }: PhoneActionModalProps) {
   if (!isOpen) return null;
 
   const validFamily = (familyMembers || []).filter((f) => Boolean(f.phone));
-  const hasMultiple = validFamily.length > 0;
 
   const formatPhone = (p: string) => {
     const clean = p.replace(/\D/g, "").slice(-10);
@@ -44,13 +50,15 @@ export function PhoneActionModal({
     return p;
   };
 
+  const isTenant = residentType === "Tenant";
+
   const allContacts = [
     ...(phone
       ? [
           {
-            name: name || "Primary Resident",
+            name: name || (isTenant ? "Tenant Resident" : "Primary Resident"),
             phone,
-            relation: "Primary",
+            relation: isTenant ? "Tenant" : "Owner / Resident",
             isPrimary: true,
           },
         ]
@@ -61,6 +69,16 @@ export function PhoneActionModal({
       relation: f.relation || "Family",
       isPrimary: false,
     })),
+    ...(isTenant && ownerPhone
+      ? [
+          {
+            name: ownerName || "Property Owner",
+            phone: ownerPhone,
+            relation: "Flat Owner",
+            isPrimary: false,
+          },
+        ]
+      : []),
   ];
 
   if (allContacts.length === 0) return null;
@@ -76,7 +94,14 @@ export function PhoneActionModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
           <div>
-            <h3 className="font-bold text-gray-900 text-base">{unit}</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-gray-900 text-base">{unit}</h3>
+              {isTenant && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                  Tenant
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500 font-medium">
               {allContacts.length === 1
                 ? "Contact Resident"
@@ -98,13 +123,19 @@ export function PhoneActionModal({
             const clean = contact.phone.replace(/\D/g, "").slice(-10);
             const formatted = formatPhone(contact.phone);
             const waUrl = `https://wa.me/91${clean}?text=${encodeURIComponent(
-              `Hello ${contact.name}, greeting from Ganesh Heritage (${unit}).`
+              `Hello ${contact.name}, greeting from ${societyConfig.name} (${unit}).`
             )}`;
+
+            const isOwnerContact = contact.relation === "Flat Owner";
 
             return (
               <div
                 key={idx}
-                className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2"
+                className={`border rounded-xl p-3 space-y-2 ${
+                  isOwnerContact
+                    ? "bg-amber-50/50 border-amber-200"
+                    : "bg-slate-50 border-slate-200"
+                }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -115,9 +146,11 @@ export function PhoneActionModal({
                       {contact.relation && (
                         <span
                           className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                            contact.isPrimary
+                            isOwnerContact
+                              ? "bg-amber-100 text-amber-900 border-amber-300"
+                              : contact.isPrimary
                               ? "bg-teal-50 text-teal-700 border-teal-200"
-                              : "bg-amber-50 text-amber-800 border-amber-200"
+                              : "bg-slate-100 text-slate-700 border-slate-200"
                           }`}
                         >
                           {contact.relation}
@@ -134,7 +167,11 @@ export function PhoneActionModal({
                 <div className="grid grid-cols-3 gap-1.5 pt-0.5">
                   <a
                     href={`tel:+91${clean}`}
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-teal-700 text-white hover:bg-teal-800 rounded-lg font-semibold text-xs transition active:scale-95 shadow-xs"
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 text-white rounded-lg font-semibold text-xs transition active:scale-95 shadow-xs ${
+                      isOwnerContact
+                        ? "bg-amber-700 hover:bg-amber-800"
+                        : "bg-teal-700 hover:bg-teal-800"
+                    }`}
                   >
                     <Phone className="w-3.5 h-3.5" />
                     <span>Call</span>
@@ -166,7 +203,7 @@ export function PhoneActionModal({
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          {block && flatNo ? (
+          {societyConfig.allowEdit && block && flatNo ? (
             <Link
               href={`/add?block=${block}&flat=${flatNo}`}
               onClick={onClose}

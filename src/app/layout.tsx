@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { societyConfig } from "@/config/society";
 
 export const metadata: Metadata = {
-  title: "Ganesh Heritage - Member Directory",
-  description: "Searchable resident directory for Ganesh Heritage Co-operative Housing Society",
-  manifest: "/manifest.json",
+  title: `${societyConfig.name} - ${societyConfig.tagline}`,
+  description: societyConfig.description,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Ganesh Heritage",
+    title: societyConfig.shortName,
   },
   icons: {
     apple: "/icons/apple-touch-icon.png",
@@ -20,7 +20,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#dc2626",
+  themeColor: societyConfig.theme.themeColor,
 };
 
 export default function RootLayout({

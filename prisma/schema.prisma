@@ -17,7 +17,9 @@ model Member {
   name              String   @default("")
   phone             String   @default("")
   status            String   @default("Vacant") // "Occupied" | "Vacant"
-  residentType      String   @default("")
+  residentType      String   @default("Owner")
+  ownerName         String   @default("")
+  ownerPhone        String   @default("")
   additionalDetails String   @default("")
   familyMembers     Json?    @default("[]")
   vehicles          Json?    @default("[]")
