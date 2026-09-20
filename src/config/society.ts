@@ -31,6 +31,7 @@ export interface SocietyConfig {
     backgroundColor: string;
   };
   storage: {
+    slug: string;
     localStorageKey: string;
     updateEvent: string;
     backupPrefix: string;
@@ -93,7 +94,16 @@ function parseBlocks(): SocietyBlock[] {
 const parsedBlocks = parseBlocks();
 const societyName = process.env.NEXT_PUBLIC_SOCIETY_NAME || "Ganesh Heritage";
 const societyShort = process.env.NEXT_PUBLIC_SOCIETY_SHORT_NAME || "Ganesh Heritage";
-const slug = (societyShort || "gh").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+const rawSlug = (
+  process.env.NEXT_PUBLIC_SOCIETY_ID ||
+  process.env.NEXT_PUBLIC_SOCIETY_SLUG ||
+  societyShort ||
+  societyName ||
+  "ganesh_heritage"
+)
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "_");
+const slug = rawSlug === "gh" || rawSlug === "ganesh_heritage" ? "ganesh_heritage" : rawSlug;
 
 export const societyConfig: SocietyConfig = {
   name: societyName,
@@ -116,6 +126,7 @@ export const societyConfig: SocietyConfig = {
     backgroundColor: "#f8fafc",
   },
   storage: {
+    slug,
     localStorageKey: `${slug}_members_v2`,
     updateEvent: `${slug}_members_updated`,
     backupPrefix: `${slug}_backup`,

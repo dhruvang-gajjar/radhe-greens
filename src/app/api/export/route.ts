@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const format = searchParams.get("format") || "json";
 
     const members = await prisma.member.findMany({
+      where: { societyId: societyConfig.storage.slug },
       orderBy: [{ block: "asc" }, { floor: "asc" }, { flatNo: "asc" }],
     });
 

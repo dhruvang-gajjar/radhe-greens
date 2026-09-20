@@ -11,6 +11,7 @@ datasource db {
 
 model Member {
   id                String   @id // e.g. "A-101", "D-702"
+  societyId         String   @default("ganesh_heritage")
   block             String   // "A", "B", "C", "D"
   flatNo            String   // "101", "1404", etc.
   floor             Int      // 1 to 14
@@ -25,6 +26,7 @@ model Member {
   vehicles          Json?    @default("[]")
   updatedAt         DateTime @default(now()) @updatedAt
 
+  @@index([societyId])
   @@index([block])
   @@index([status])
 }
