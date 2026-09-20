@@ -1,4 +1,3 @@
-import initialMembers from "@/data/members.json";
 import { societyConfig, generateAllSocietyFlats, parseFloorFromFlat } from "@/config/society";
 
 export interface FamilyMember {
@@ -42,45 +41,24 @@ export function cleanPhoneNumber(raw: string): string {
   return digits.slice(-10);
 }
 
+// Every new society starts 100% clean and blank with all flats vacant
 function buildDefaultMembers(): Member[] {
   const generated = generateAllSocietyFlats();
-  const initialMap = new Map<string, any>();
-  if (Array.isArray(initialMembers)) {
-    initialMembers.forEach((m: any) => {
-      if (m && m.id) initialMap.set(String(m.id).toUpperCase(), m);
-    });
-  }
-
-  return generated.map((gf) => {
-    const existing = initialMap.get(gf.id.toUpperCase());
-    if (existing) {
-      return {
-        ...existing,
-        id: gf.id,
-        block: gf.block,
-        flatNo: gf.flatNo,
-        floor: gf.floor,
-        residentType: existing.residentType || "Owner",
-        ownerName: existing.ownerName || "",
-        ownerPhone: existing.ownerPhone || "",
-      };
-    }
-    return {
-      id: gf.id,
-      block: gf.block,
-      flatNo: gf.flatNo,
-      floor: gf.floor,
-      name: "",
-      phone: "",
-      status: "Vacant",
-      residentType: "Owner",
-      ownerName: "",
-      ownerPhone: "",
-      additionalDetails: "",
-      familyMembers: [],
-      vehicles: [],
-    };
-  });
+  return generated.map((gf) => ({
+    id: gf.id,
+    block: gf.block,
+    flatNo: gf.flatNo,
+    floor: gf.floor,
+    name: "",
+    phone: "",
+    status: "Vacant",
+    residentType: "Owner",
+    ownerName: "",
+    ownerPhone: "",
+    additionalDetails: "",
+    familyMembers: [],
+    vehicles: [],
+  }));
 }
 
 export const defaultMembers: Member[] = buildDefaultMembers();

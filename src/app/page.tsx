@@ -31,7 +31,7 @@ export default function DirectoryPage() {
 
     // 4. Single cloud sync on first load to fetch latest records
     fetchLiveMembers().then((data) => {
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         setMembers([...data]);
       }
     });
@@ -342,9 +342,25 @@ export default function DirectoryPage() {
         })}
 
         {filteredMembers.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-200 p-6 space-y-2">
-            <p className="text-sm font-semibold text-slate-700">No flats found</p>
-            <p className="text-xs text-slate-400">Try changing your search term or block filter</p>
+          <div className="text-center py-12 bg-white rounded-xl border border-slate-200 p-6 space-y-2.5">
+            <p className="text-sm font-semibold text-slate-700">
+              {search ? "No matching flats found" : "No residents registered yet"}
+            </p>
+            <p className="text-xs text-slate-400">
+              {search
+                ? "Try searching with a different flat number, name, or vehicle"
+                : "Click '+ Add Name' above to register the first flat resident"}
+            </p>
+            {!search && (
+              <div className="pt-2">
+                <Link
+                  href="/add"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-700 text-white text-xs font-bold hover:bg-red-800 transition shadow-xs"
+                >
+                  <span>+</span> Add Flat Details
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

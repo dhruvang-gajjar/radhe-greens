@@ -49,12 +49,16 @@ function cleanPhoneNumber(raw: string): string {
 
 export async function GET() {
   try {
+    const currentSlug = societyConfig.storage.slug;
     const dbMembers = await prisma.member.findMany({
+      where: {
+        societyId: currentSlug,
+      },
       orderBy: [{ block: "asc" }, { floor: "asc" }, { flatNo: "asc" }],
     });
 
     if (!dbMembers || dbMembers.length === 0) {
-      // Return baseline if database is empty/not yet seeded
+      // New project / empty database: return blank/vacant baseline for this society
       return NextResponse.json(defaultMembers, {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -87,7 +91,7 @@ export async function GET() {
       }
 
       return {
-        id: m.id,
+        id: `${m.block}-${m.flatNo}`,
         block: m.block,
         flatNo: m.flatNo,
         floor: m.floor,
@@ -137,12 +141,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const id = `${cleanBlock}-${cleanFlat}`;
+    const currentSlug = societyConfig.storage.slug;
+    const isDefaultGanesh = currentSlug === "ganesh_heritage" || currentSlug === "gh";
+    const dbId = isDefaultGanesh ? `${cleanBlock}-${cleanFlat}` : `${currentSlug}-${cleanBlock}-${cleanFlat}`;
     const floor = parseFloorFromFlat(cleanFlat);
 
     // If editing is disabled for this society, do not allow overwriting an occupied flat
     if (!societyConfig.allowEdit) {
-      const existing = await prisma.member.findUnique({ where: { id } });
+      const existing = await prisma.member.findUnique({ where: { id: dbId } });
       const isAlreadyOccupied =
         existing &&
         (existing.status === "Occupied" ||
@@ -191,8 +197,9 @@ export async function POST(req: Request) {
     const isOccupied = Boolean(cleanName || cleanPhone || cleanFamily.length > 0 || cleanVehicles.length > 0);
 
     const record = await prisma.member.upsert({
-      where: { id },
+      where: { id: dbId },
       update: {
+        societyId: currentSlug,
         block: cleanBlock,
         flatNo: cleanFlat,
         floor,
@@ -207,7 +214,8 @@ export async function POST(req: Request) {
         vehicles: cleanVehicles,
       },
       create: {
-        id,
+        id: dbId,
+        societyId: currentSlug,
         block: cleanBlock,
         flatNo: cleanFlat,
         floor,
@@ -227,6 +235,7 @@ export async function POST(req: Request) {
       success: true,
       member: {
         ...record,
+        id: `${cleanBlock}-${cleanFlat}`,
         updatedAt: record.updatedAt.toISOString(),
       },
     });
