@@ -11,6 +11,11 @@ interface FamilyContact {
   relation?: string;
 }
 
+interface VehicleRecord {
+  regNo: string;
+  type?: "Car" | "Bike" | "Other";
+}
+
 interface MemberRecord {
   id: string;
   block: string;
@@ -22,6 +27,7 @@ interface MemberRecord {
   residentType?: string;
   additionalDetails?: string;
   familyMembers?: FamilyContact[];
+  vehicles?: VehicleRecord[];
   updatedAt?: string;
 }
 
@@ -68,6 +74,17 @@ export async function GET() {
         }
       }
 
+      let vehicles: VehicleRecord[] = [];
+      if (Array.isArray(m.vehicles)) {
+        vehicles = m.vehicles as unknown as VehicleRecord[];
+      } else if (typeof m.vehicles === "string") {
+        try {
+          vehicles = JSON.parse(m.vehicles);
+        } catch {
+          vehicles = [];
+        }
+      }
+
       return {
         id: m.id,
         block: m.block,
@@ -79,6 +96,7 @@ export async function GET() {
         residentType: m.residentType || "",
         additionalDetails: m.additionalDetails || "",
         familyMembers: family,
+        vehicles,
         updatedAt: m.updatedAt.toISOString(),
       };
     });
@@ -104,7 +122,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { block, flatNo, name, phone, additionalDetails, familyMembers } = body;
+    const { block, flatNo, name, phone, additionalDetails, familyMembers, vehicles } = body;
 
     const cleanBlock = String(block || "").toUpperCase().trim();
     const cleanFlat = String(flatNo || "").trim();
@@ -134,7 +152,16 @@ export async function POST(req: Request) {
       }))
       .filter((f: { name: string; phone: string }) => Boolean(f.name || f.phone));
 
-    const isOccupied = Boolean(cleanName || cleanPhone || cleanFamily.length > 0);
+    const rawVehicles = Array.isArray(vehicles) ? vehicles : [];
+    const cleanVehicles = rawVehicles
+      .slice(0, 4)
+      .map((v: { regNo?: string; type?: string }) => ({
+        regNo: String(v.regNo || "").toUpperCase().trim().slice(0, 20),
+        type: (["Car", "Bike", "Other"].includes(String(v.type)) ? v.type : "Car") as "Car" | "Bike" | "Other",
+      }))
+      .filter((v: { regNo: string }) => Boolean(v.regNo));
+
+    const isOccupied = Boolean(cleanName || cleanPhone || cleanFamily.length > 0 || cleanVehicles.length > 0);
 
     const record = await prisma.member.upsert({
       where: { id },
@@ -147,6 +174,7 @@ export async function POST(req: Request) {
         status: isOccupied ? "Occupied" : "Vacant",
         additionalDetails: cleanDetails,
         familyMembers: cleanFamily,
+        vehicles: cleanVehicles,
       },
       create: {
         id,
@@ -158,6 +186,7 @@ export async function POST(req: Request) {
         status: isOccupied ? "Occupied" : "Vacant",
         additionalDetails: cleanDetails,
         familyMembers: cleanFamily,
+        vehicles: cleanVehicles,
       },
     });
 

@@ -6,6 +6,11 @@ export interface FamilyMember {
   relation?: string;
 }
 
+export interface Vehicle {
+  regNo: string;
+  type?: "Car" | "Bike" | "Other";
+}
+
 export interface Member {
   id: string;
   block: string;
@@ -17,6 +22,7 @@ export interface Member {
   residentType?: string;
   additionalDetails?: string;
   familyMembers?: FamilyMember[];
+  vehicles?: Vehicle[];
   updatedAt?: string;
 }
 
@@ -134,6 +140,7 @@ export async function saveMemberCloud(data: {
   phone?: string;
   additionalDetails?: string;
   familyMembers?: FamilyMember[];
+  vehicles?: Vehicle[];
 }): Promise<Member> {
   // 1. Immediately update local data so all pages see the new value instantly
   const localRecord = saveMember(data);
@@ -171,6 +178,7 @@ export function saveMember(data: {
   phone?: string;
   additionalDetails?: string;
   familyMembers?: FamilyMember[];
+  vehicles?: Vehicle[];
 }): Member {
   const current = [...getMembers()];
   const block = String(data.block || "").toUpperCase().trim();
@@ -189,7 +197,17 @@ export function saveMember(data: {
         .filter((f) => Boolean(f.name || f.phone))
     : [];
 
-  const isOccupied = Boolean(name || phone || sanitizedFamily.length > 0);
+  const sanitizedVehicles = Array.isArray(data.vehicles)
+    ? data.vehicles
+        .slice(0, 4)
+        .map((v) => ({
+          regNo: String(v.regNo || "").toUpperCase().trim().slice(0, 20),
+          type: v.type || "Car",
+        }))
+        .filter((v) => Boolean(v.regNo))
+    : [];
+
+  const isOccupied = Boolean(name || phone || sanitizedFamily.length > 0 || sanitizedVehicles.length > 0);
 
   const existingIndex = current.findIndex((m) => m.id === id);
 
@@ -203,6 +221,7 @@ export function saveMember(data: {
     status: isOccupied ? "Occupied" : "Vacant",
     additionalDetails: String(data.additionalDetails || "").trim().slice(0, 500),
     familyMembers: sanitizedFamily,
+    vehicles: sanitizedVehicles,
     updatedAt: new Date().toISOString(),
   };
 
@@ -230,18 +249,26 @@ export function exportDirectoryCSV(members: Member[]): void {
     "Floor",
     "Resident Name",
     "Mobile Number",
+    "Vehicles",
     "Status",
     "Additional Details",
   ];
-  const rows = members.map((m) => [
-    `"${m.block}"`,
-    `"${m.flatNo}"`,
-    `"${m.floor}"`,
-    `"${(m.name || "").replace(/"/g, '""')}"`,
-    `"${m.phone || ""}"`,
-    `"${m.status}"`,
-    `"${(m.additionalDetails || "").replace(/"/g, '""')}"`,
-  ]);
+  const rows = members.map((m) => {
+    const vehiclesStr = (m.vehicles || [])
+      .map((v) => `${v.regNo}${v.type ? ` (${v.type})` : ""}`)
+      .join("; ");
+
+    return [
+      `"${m.block}"`,
+      `"${m.flatNo}"`,
+      `"${m.floor}"`,
+      `"${(m.name || "").replace(/"/g, '""')}"`,
+      `"${m.phone || ""}"`,
+      `"${vehiclesStr.replace(/"/g, '""')}"`,
+      `"${m.status}"`,
+      `"${(m.additionalDetails || "").replace(/"/g, '""')}"`,
+    ];
+  });
 
   const csvContent =
     "data:text/csv;charset=utf-8,\uFEFF" +

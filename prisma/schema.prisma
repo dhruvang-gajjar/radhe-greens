@@ -20,6 +20,7 @@ model Member {
   residentType      String   @default("")
   additionalDetails String   @default("")
   familyMembers     Json?    @default("[]")
+  vehicles          Json?    @default("[]")
   updatedAt         DateTime @default(now()) @updatedAt
 
   @@index([block])

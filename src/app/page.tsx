@@ -44,11 +44,13 @@ export default function DirectoryPage() {
 
   const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const cleanQ = q.replace(/[\s-]/g, "");
 
     return members.filter((m) => {
-      // Only registered members
+      // Registered / Occupied flats
       const hasFamily = Array.isArray(m.familyMembers) && m.familyMembers.length > 0;
-      const isOccupied = Boolean(m.name || m.phone || hasFamily);
+      const hasVehicles = Array.isArray(m.vehicles) && m.vehicles.length > 0;
+      const isOccupied = Boolean(m.name || m.phone || hasFamily || hasVehicles);
       if (!isOccupied) {
         return false;
       }
@@ -71,8 +73,13 @@ export default function DirectoryPage() {
           (f.phone || "").includes(q) ||
           (f.relation || "").toLowerCase().includes(q)
         );
+        const matchVehicle = hasVehicles && m.vehicles!.some((v) => {
+          const reg = (v.regNo || "").toLowerCase();
+          const regNormalized = reg.replace(/[\s-]/g, "");
+          return reg.includes(q) || (cleanQ.length > 0 && regNormalized.includes(cleanQ));
+        });
 
-        if (!matchFlat && !matchId && !matchName && !matchPhone && !matchFloor && !matchDetails && !matchFamily) {
+        if (!matchFlat && !matchId && !matchName && !matchPhone && !matchFloor && !matchDetails && !matchFamily && !matchVehicle) {
           return false;
         }
       }
@@ -125,7 +132,7 @@ export default function DirectoryPage() {
         </div>
         <Link
           href="/add"
-          className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-teal-700 text-white text-xs font-semibold hover:bg-teal-800 transition active:scale-95 shadow-sm"
+          className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-red-700 text-white text-xs font-semibold hover:bg-red-800 transition active:scale-95 shadow-sm"
         >
           <span>+</span> Add Name
         </Link>
@@ -138,8 +145,8 @@ export default function DirectoryPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search flat no, resident name, phone..."
-          className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-9 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition shadow-sm"
+          placeholder="Search flat no, resident name, phone, vehicle..."
+          className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-9 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition shadow-sm"
         />
         {search && (
           <button
@@ -160,7 +167,7 @@ export default function DirectoryPage() {
             onClick={() => setSelectedBlock(b)}
             className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
               selectedBlock === b
-                ? "bg-teal-700 text-white shadow-sm"
+                ? "bg-red-700 text-white shadow-sm"
                 : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -239,7 +246,7 @@ export default function DirectoryPage() {
                     <span className="text-xs text-slate-400 italic">Vacant</span>
                     <Link
                       href={`/add?block=${m.block}&flat=${m.flatNo}`}
-                      className="text-[11px] text-teal-700 font-semibold hover:underline"
+                      className="text-[11px] text-red-700 font-semibold hover:underline"
                     >
                       + Add Name
                     </Link>
@@ -255,7 +262,7 @@ export default function DirectoryPage() {
                         key={fIdx}
                         type="button"
                         onClick={() => setActiveModalMember(m)}
-                        className="inline-flex items-center gap-1 text-[11px] bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-teal-800 px-2 py-0.5 rounded-md border border-slate-200 transition font-medium"
+                        className="inline-flex items-center gap-1 text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 transition font-medium"
                         title={`Click to contact ${f.name}`}
                       >
                         <span>{f.name}</span>
@@ -265,6 +272,22 @@ export default function DirectoryPage() {
                           </span>
                         )}
                       </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Vehicles tags if present */}
+                {Array.isArray(m.vehicles) && m.vehicles.length > 0 && (
+                  <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-slate-400 font-medium">Vehicles:</span>
+                    {m.vehicles.map((v, vIdx) => (
+                      <span
+                        key={vIdx}
+                        className="inline-flex items-center gap-1 text-[11px] bg-slate-50 text-slate-800 px-2 py-0.5 rounded-md border border-slate-200 font-mono font-medium"
+                      >
+                        <span>{v.type === "Bike" ? "🛵" : v.type === "Car" ? "🚗" : "🚙"}</span>
+                        <span>{v.regNo}</span>
+                      </span>
                     ))}
                   </div>
                 )}
@@ -288,27 +311,11 @@ export default function DirectoryPage() {
         )}
       </div>
 
-      {/* Backup & Data Export (Zero Vendor Lock-In) */}
-      <footer className="pt-6 pb-2 text-center text-xs text-slate-400 flex items-center justify-center gap-3">
+      {/* Clean Directory Footer */}
+      <footer className="pt-6 pb-2 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
         <span>Ganesh Heritage</span>
         <span>•</span>
-        <a
-          href="/api/export?format=json"
-          download
-          className="text-teal-700 hover:text-teal-800 hover:underline font-medium"
-          title="Download full database backup as JSON"
-        >
-          Export JSON
-        </a>
-        <span>•</span>
-        <a
-          href="/api/export?format=csv"
-          download
-          className="text-teal-700 hover:text-teal-800 hover:underline font-medium"
-          title="Download full database backup as CSV"
-        >
-          Export CSV
-        </a>
+        <span>Resident Directory</span>
       </footer>
 
       {/* Action Modal for Phone */}

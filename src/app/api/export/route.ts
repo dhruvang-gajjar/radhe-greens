@@ -13,12 +13,19 @@ export async function GET(req: Request) {
     });
 
     if (format === "csv") {
-      const headers = ["id", "block", "flatNo", "floor", "name", "phone", "familyMembers", "status", "residentType", "additionalDetails", "updatedAt"];
+      const headers = ["id", "block", "flatNo", "floor", "name", "phone", "familyMembers", "vehicles", "status", "residentType", "additionalDetails", "updatedAt"];
       const rows = members.map((m) => {
         let familyStr = "";
         if (Array.isArray(m.familyMembers)) {
           familyStr = (m.familyMembers as any[])
             .map((f) => `${f.name}${f.relation ? ` (${f.relation})` : ""}: ${f.phone}`)
+            .join("; ");
+        }
+
+        let vehiclesStr = "";
+        if (Array.isArray(m.vehicles)) {
+          vehiclesStr = (m.vehicles as any[])
+            .map((v) => `${v.regNo}${v.type ? ` (${v.type})` : ""}`)
             .join("; ");
         }
 
@@ -30,6 +37,7 @@ export async function GET(req: Request) {
           `"${(m.name || "").replace(/"/g, '""')}"`,
           `"${m.phone || ""}"`,
           `"${familyStr.replace(/"/g, '""')}"`,
+          `"${vehiclesStr.replace(/"/g, '""')}"`,
           m.status,
           `"${(m.residentType || "").replace(/"/g, '""')}"`,
           `"${(m.additionalDetails || "").replace(/"/g, '""')}"`,

@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, AlertCircle, Plus, Trash2, Users } from "lucide-react";
-import { getMembers, defaultMembers, findMember, saveMemberCloud, fetchLiveMembers, Member, FamilyMember } from "@/lib/storage";
+import { ArrowLeft, Check, AlertCircle, Plus, Trash2, Users, Car } from "lucide-react";
+import { getMembers, defaultMembers, findMember, saveMemberCloud, fetchLiveMembers, Member, FamilyMember, Vehicle } from "@/lib/storage";
 
 export default function AddPage() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function AddPage() {
   const [phone, setPhone] = useState<string>("");
   const [additionalDetails, setAdditionalDetails] = useState<string>("");
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [error, setError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
@@ -51,16 +52,24 @@ export default function AddPage() {
   useEffect(() => {
     if (!selectedBlock || !selectedFlat) return;
     const existing = findMember(selectedBlock, selectedFlat, members);
-    if (existing && (existing.name || existing.phone || (existing.familyMembers && existing.familyMembers.length > 0))) {
+    if (
+      existing &&
+      (existing.name ||
+        existing.phone ||
+        (existing.familyMembers && existing.familyMembers.length > 0) ||
+        (existing.vehicles && existing.vehicles.length > 0))
+    ) {
       setName(existing.name || "");
       setPhone(existing.phone || "");
       setAdditionalDetails(existing.additionalDetails || "");
       setFamilyMembers(Array.isArray(existing.familyMembers) ? [...existing.familyMembers] : []);
+      setVehicles(Array.isArray(existing.vehicles) ? [...existing.vehicles] : []);
     } else {
       setName("");
       setPhone("");
       setAdditionalDetails("");
       setFamilyMembers([]);
+      setVehicles([]);
     }
   }, [selectedBlock, selectedFlat, members]);
 
@@ -90,6 +99,28 @@ export default function AddPage() {
     setFamilyMembers(familyMembers.filter((_, i) => i !== index));
   };
 
+  const handleAddVehicle = () => {
+    if (vehicles.length >= 4) return;
+    setVehicles([
+      ...vehicles,
+      { regNo: "", type: "Car" },
+    ]);
+  };
+
+  const handleUpdateVehicle = (index: number, field: keyof Vehicle, val: string) => {
+    const updated = [...vehicles];
+    if (field === "regNo") {
+      updated[index][field] = val.toUpperCase().slice(0, 20);
+    } else {
+      updated[index][field] = val as "Car" | "Bike" | "Other";
+    }
+    setVehicles(updated);
+  };
+
+  const handleRemoveVehicle = (index: number) => {
+    setVehicles(vehicles.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -113,6 +144,15 @@ export default function AddPage() {
       }
     }
 
+    // Sanitize and cap vehicles at 4
+    const validVehicles = vehicles
+      .slice(0, 4)
+      .map((v) => ({
+        regNo: v.regNo.trim().toUpperCase(),
+        type: v.type || "Car",
+      }))
+      .filter((v) => v.regNo.length > 0);
+
     setIsSaving(true);
 
     try {
@@ -123,6 +163,7 @@ export default function AddPage() {
         phone: phone.trim(),
         additionalDetails: additionalDetails.trim(),
         familyMembers,
+        vehicles: validVehicles,
       });
 
       setSuccess(true);
@@ -141,7 +182,8 @@ export default function AddPage() {
   const isCurrentlyOccupied = Boolean(
     currentResident?.name ||
       currentResident?.phone ||
-      (currentResident?.familyMembers && currentResident.familyMembers.length > 0)
+      (currentResident?.familyMembers && currentResident.familyMembers.length > 0) ||
+      (currentResident?.vehicles && currentResident.vehicles.length > 0)
   );
 
   return (
@@ -194,7 +236,7 @@ export default function AddPage() {
                 onClick={() => setSelectedBlock(b)}
                 className={`py-2.5 text-center rounded-xl border text-sm font-bold transition ${
                   selectedBlock === b
-                    ? "bg-teal-700 text-white border-teal-700 shadow-xs"
+                    ? "bg-red-700 text-white border-red-700 shadow-xs"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                 }`}
               >
@@ -212,7 +254,7 @@ export default function AddPage() {
           <select
             value={selectedFlat}
             onChange={(e) => setSelectedFlat(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
           >
             {blockFlats.map((m) => {
               const occupied = Boolean(m.name || m.phone);
@@ -225,8 +267,8 @@ export default function AddPage() {
           </select>
           <p className="text-[11px] text-slate-400 mt-1">
             {isCurrentlyOccupied ? (
-              <span className="text-teal-700 font-semibold">
-                ● Currently registered to {currentResident?.name}. You can update details below.
+              <span className="text-red-700 font-semibold">
+                ● Currently registered to {currentResident?.name || "Resident"}. You can update details below.
               </span>
             ) : (
               <span className="text-slate-400">● Flat is currently vacant.</span>
@@ -245,7 +287,7 @@ export default function AddPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Ramesh Patel"
             required
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
           />
         </div>
 
@@ -265,7 +307,7 @@ export default function AddPage() {
               onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="98765 43210"
               maxLength={10}
-              className="w-full bg-white border border-slate-200 rounded-r-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+              className="w-full bg-white border border-slate-200 rounded-r-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
             />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">10-digit number for calling and WhatsApp</p>
@@ -275,14 +317,14 @@ export default function AddPage() {
         <div className="space-y-2.5 pt-2 border-t border-slate-100">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-teal-700" />
+              <Users className="w-3.5 h-3.5 text-red-700" />
               <span>5. Family Members</span>
               <span className="text-slate-400 normal-case font-normal">(Optional)</span>
             </label>
             <button
               type="button"
               onClick={handleAddFamilyMember}
-              className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition"
+              className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Member</span>
@@ -295,7 +337,7 @@ export default function AddPage() {
               <button
                 type="button"
                 onClick={handleAddFamilyMember}
-                className="mt-1 text-xs font-semibold text-teal-700 hover:underline inline-flex items-center gap-1"
+                className="mt-1 text-xs font-semibold text-red-700 hover:underline inline-flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" />
                 <span>Add spouse, child, or parent contact</span>
@@ -335,7 +377,7 @@ export default function AddPage() {
                           handleUpdateFamilyMember(idx, "name", e.target.value)
                         }
                         placeholder="e.g. Geetaben Patel"
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
                       />
                     </div>
 
@@ -349,7 +391,7 @@ export default function AddPage() {
                         onChange={(e) =>
                           handleUpdateFamilyMember(idx, "relation", e.target.value)
                         }
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
                       >
                         {["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map(
                           (r) => (
@@ -380,7 +422,7 @@ export default function AddPage() {
                         }
                         placeholder="98765 12345"
                         maxLength={10}
-                        className="w-full bg-white border border-slate-200 rounded-r-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+                        className="w-full bg-white border border-slate-200 rounded-r-lg px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
                       />
                     </div>
                   </div>
@@ -390,17 +432,113 @@ export default function AddPage() {
           )}
         </div>
 
-        {/* 6. Additional Details */}
+        {/* 6. Vehicles (Max 4 per flat) */}
+        <div className="space-y-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+              <Car className="w-3.5 h-3.5 text-red-700" />
+              <span>6. Vehicles</span>
+              <span className="text-slate-400 normal-case font-normal">
+                ({vehicles.length}/4 max)
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={handleAddVehicle}
+              disabled={vehicles.length >= 4}
+              className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1 rounded-lg transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Vehicle</span>
+            </button>
+          </div>
+
+          {vehicles.length === 0 ? (
+            <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3 text-center">
+              <p className="text-xs text-slate-500">No vehicles added yet for this flat.</p>
+              <button
+                type="button"
+                onClick={handleAddVehicle}
+                className="mt-1 text-xs font-semibold text-red-700 hover:underline inline-flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add car, two-wheeler, or other vehicle</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {vehicles.map((v, idx) => (
+                <div
+                  key={idx}
+                  className="bg-slate-50/80 border border-slate-200 rounded-xl p-3 space-y-2.5 relative"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                      Vehicle #{idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVehicle(idx)}
+                      className="text-rose-500 hover:text-rose-700 p-1 rounded-md hover:bg-rose-50 transition"
+                      title="Remove this vehicle"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Vehicle Registration Number */}
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                        Registration Number
+                      </label>
+                      <input
+                        type="text"
+                        value={v.regNo}
+                        onChange={(e) =>
+                          handleUpdateVehicle(idx, "regNo", e.target.value)
+                        }
+                        placeholder="e.g. GJ-01-AB-1234"
+                        maxLength={20}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm font-mono uppercase text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
+                      />
+                    </div>
+
+                    {/* Vehicle Type */}
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                        Vehicle Type
+                      </label>
+                      <select
+                        value={v.type || "Car"}
+                        onChange={(e) =>
+                          handleUpdateVehicle(idx, "type", e.target.value)
+                        }
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
+                      >
+                        <option value="Car">🚗 Car / 4-Wheeler</option>
+                        <option value="Bike">🛵 Two-Wheeler / Bike</option>
+                        <option value="Other">🚙 Other</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 7. Additional Details */}
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-            6. Additional Details <span className="text-slate-400 normal-case font-normal">(Optional)</span>
+            7. Additional Details <span className="text-slate-400 normal-case font-normal">(Optional)</span>
           </label>
           <textarea
             value={additionalDetails}
             onChange={(e) => setAdditionalDetails(e.target.value)}
-            placeholder="e.g. Car No: GJ-01-XX-1234, Alternate contact, or notes..."
+            placeholder="e.g. Alternate contact, intercom, or notes..."
             rows={2}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 shadow-xs"
           />
         </div>
 
@@ -409,7 +547,7 @@ export default function AddPage() {
           <button
             type="submit"
             disabled={isSaving || success}
-            className="w-full py-3 px-4 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 text-white rounded-xl font-bold text-sm transition shadow-sm active:scale-98"
+            className="w-full py-3 px-4 bg-red-700 hover:bg-red-800 disabled:opacity-60 text-white rounded-xl font-bold text-sm transition shadow-sm active:scale-98"
           >
             {success
               ? "Saved!"
