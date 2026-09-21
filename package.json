@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && node scripts/generate-icons.js && next build",
+    "build": "prisma generate && node scripts/db-sync.js && node scripts/generate-icons.js && next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
